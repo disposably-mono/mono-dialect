@@ -1,0 +1,110 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// USER & AUTH
+// ─────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  googleId  String   @unique
+  username  String   @unique
+  email     String   @unique
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  dailyStats   DailyStats?
+  rogueStats   RogueStats?
+  runs         Run[]
+  sentRequests  FriendRequest[] @relation("Sender")
+  recvRequests  FriendRequest[] @relation("Receiver")
+  friends      Friendship[]    @relation("UserA")
+  friendOf     Friendship[]    @relation("UserB")
+}
+
+// ─────────────────────────────────────────
+// STATS
+// ─────────────────────────────────────────
+
+model DailyStats {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak  Int     @default(0)
+  longestStreak  Int     @default(0)
+  gamesPlayed    Int     @default(0)
+  gamesWon       Int     @default(0)
+  guessDist      Json    @default("{\"1\":0,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0}")
+  lastPlayedDate String?
+}
+
+model RogueStats {
+  id          String @id @default(cuid())
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  highScore   Int    @default(0)
+  totalRuns   Int    @default(0)
+  totalRounds Int    @default(0)
+  totalScore  Int    @default(0)
+}
+
+// ─────────────────────────────────────────
+// ROGUELIKE RUNS
+// ─────────────────────────────────────────
+
+model Run {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  difficulty String
+  subMode    String
+  config     Json
+  totalScore Int
+  roundsWon  Int
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────────────────────
+// DAILY WORD
+// ─────────────────────────────────────────
+
+model DailyWord {
+  id        String   @id @default(cuid())
+  date      String   @unique
+  word      String
+  length    Int
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────
+// SOCIAL
+// ─────────────────────────────────────────
+
+model FriendRequest {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  sender     User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  @@unique([senderId, receiverId])
+}
+
+model Friendship {
+  id      String @id @default(cuid())
+  userAId String
+  userBId String
+  userA   User   @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB   User   @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}

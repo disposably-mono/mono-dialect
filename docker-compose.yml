@@ -1,0 +1,19 @@
+# docker-compose.yml
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    container_name: mono_dialect_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dialect
+      POSTGRES_PASSWORD: dialect_dev
+      POSTGRES_DB: mono_dialect
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
