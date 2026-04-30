@@ -1,196 +1,144 @@
-// src/app/page.tsx
-"use client";
+import { auth, signIn } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { DailyGame } from "@/components/game/DailyGame";
+import { AuthControls } from "@/components/nav/AuthControls";
+import type { DailyStatsData } from "@/components/game/types";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+// ── NEW: shape of the board snapshot coming from the DB
+export type BoardStateData = {
+  grid: string[][];
+  revealed: (string | null)[][];
+  currentRow: number;
+  currentCol: number;
+  status: string;
+  word?: string;
+};
 
-export default function Home() {
-  const { data: session, status } = useSession();
-  const loading = status === "loading";
-  const user = session?.user as any;
+export default async function Home() {
+  const session = await auth();
+  const user = session?.user as { id?: string; username?: string; name?: string } | undefined;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  let stats: DailyStatsData | null = null;
+  let hasPlayedToday = false;
+  let boardState: BoardStateData | null = null; // ── NEW
+
+  if (user?.id) {
+    const row = await db.dailyStats.findUnique({ where: { userId: user.id } });
+    if (row) {
+      stats = {
+        currentStreak: row.currentStreak,
+        longestStreak:  row.longestStreak,
+        gamesPlayed:    row.gamesPlayed,
+        gamesWon:       row.gamesWon,
+        guessDist:      row.guessDist as Record<string, number>,
+      };
+      hasPlayedToday = row.lastPlayedDate === today;
+      // ── NEW: pass board snapshot down if it exists for today
+      if (row.boardState && row.lastPlayedDate === today) {
+        boardState = row.boardState as BoardStateData;
+      }
+    }
+  }
 
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
+    <div style={{ background: "var(--bg)", color: "var(--text-primary)", minHeight: "100vh" }}>
+
+      {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <nav style={{
         display: "flex",
-        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 20px",
+        height: 52,
+        borderBottom: "0.5px solid var(--tile-border)",
         background: "var(--bg)",
-        fontFamily: "var(--font-sans)",
-      }}
-    >
-      {/* NAV */}
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 20px",
-          height: "52px",
-          borderBottom: "0.5px solid var(--border)",
-          background: "var(--bg)",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        {/* Logo */}
-        <span
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "17px",
-            color: "var(--text-primary)",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          mono
-          <span style={{ color: "var(--accent)" }}>—</span>
-          dialect
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+      }}>
+        <span style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: 17,
+          color: "var(--text-primary)",
+          letterSpacing: "-0.02em",
+        }}>
+          mono<span style={{ color: "var(--fern)" }}>—</span>dialect
         </span>
 
-        {/* Nav tabs — placeholder, active in Phase 2 */}
-        <div
-          style={{
-            display: "flex",
-            gap: "2px",
-            background: "var(--bg-2)",
-            padding: "3px",
-            borderRadius: "8px",
-          }}
-        >
+        <div style={{
+          display: "flex",
+          gap: 2,
+          background: "var(--bg-2)",
+          padding: 3,
+          borderRadius: 8,
+        }}>
           {["Daily", "Roguelike", "Leaderboard", "Profile"].map((tab, i) => (
-            <button
+            <span
               key={tab}
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: "12px",
+                fontSize: 12,
                 fontWeight: 500,
                 color: i === 0 ? "var(--text-primary)" : "var(--text-muted)",
                 padding: "5px 12px",
-                borderRadius: "5px",
-                cursor: "pointer",
+                borderRadius: 5,
                 background: i === 0 ? "var(--bg-3)" : "none",
-                border: "none",
-                whiteSpace: "nowrap",
+                cursor: i === 0 ? "default" : "not-allowed",
+                opacity: i === 0 ? 1 : 0.4,
+                userSelect: "none",
               }}
             >
               {tab}
-            </button>
+            </span>
           ))}
         </div>
 
-        {/* Auth actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {/* Theme pill — wired in Phase 5 */}
-          <button
-            style={{
-              fontSize: "11px",
-              fontWeight: 500,
-              fontFamily: "var(--font-mono)",
-              color: "var(--text-muted)",
-              padding: "4px 10px",
-              border: "0.5px solid var(--border)",
-              borderRadius: "20px",
-              cursor: "pointer",
-              background: "none",
-            }}
-          >
-            dark
-          </button>
-
-          {loading ? (
-            <div
-              style={{
-                width: "72px",
-                height: "28px",
-                background: "var(--bg-3)",
-                borderRadius: "6px",
-                opacity: 0.5,
-              }}
+        {/* ── CHANGED: server signout form replaced with AuthControls client
+                component so it can clear localStorage before signing out ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {user ? (
+            <AuthControls
+              username={user.username ?? user.name}
+              userId={user.id}
             />
-          ) : user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px",
-                  color: "var(--accent)",
-                }}
-              >
-                @{user.username ?? user.name}
-              </span>
-              <button
-                onClick={() => signOut()}
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "var(--text-muted)",
-                  background: "var(--bg-2)",
-                  padding: "5px 14px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  border: "0.5px solid var(--border)",
-                }}
-              >
-                Sign out
-              </button>
-            </div>
           ) : (
-            <button
-              onClick={() => signIn("google")}
-              style={{
-                fontSize: "12px",
+            <form action={async () => { "use server"; await signIn("google"); }}>
+              <button type="submit" style={{
+                fontSize: 12,
                 fontWeight: 500,
                 color: "var(--graphite)",
                 background: "var(--beige)",
                 padding: "5px 14px",
-                borderRadius: "6px",
+                borderRadius: 6,
                 cursor: "pointer",
                 border: "none",
-              }}
-            >
-              Sign in
-            </button>
+                fontFamily: "var(--font-sans)",
+              }}>
+                Sign in
+              </button>
+            </form>
           )}
         </div>
       </nav>
 
-      {/* BODY — placeholder until Phase 2 game board */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "16px",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "clamp(28px, 6vw, 48px)",
-            letterSpacing: "-0.03em",
-            color: "var(--text-primary)",
-          }}
-        >
-          mono
-          <span style={{ color: "var(--accent)" }}>—</span>
-          dialect
-        </div>
-        <p
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
-        >
-          {user
-            ? `welcome back, ${user.username ?? user.name}`
-            : "Phase 1 complete · Sign in to continue"}
-        </p>
+      {/* ── GAME ─────────────────────────────────────────────────────────── */}
+      <div style={{
+        maxWidth: "var(--max-w)",
+        margin: "0 auto",
+        border: "0.5px solid var(--tile-border)",
+        borderTop: "none",
+      }}>
+        <DailyGame
+          initialStats={stats}
+          username={user?.username}
+          userId={user?.id}         // ── NEW: for account-scoped localStorage key
+          hasPlayedToday={hasPlayedToday}
+          today={today}
+          boardState={boardState}   // ── NEW: DB snapshot for cross-device rehydration
+        />
       </div>
-    </main>
+    </div>
   );
 }
