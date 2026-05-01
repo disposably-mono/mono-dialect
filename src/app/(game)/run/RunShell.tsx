@@ -1,11 +1,13 @@
 "use client";
 // src/app/(game)/run/RunShell.tsx
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRunState } from "./useRunState";
 import RunConfigScreen from "./RunConfigScreen";
 import RunGameScreen from "./RunGameScreen";
 import RunEndScreen from "./RunEndScreen";
+import AbandonModal from "./AbandonModal";
 
 interface Props {
   userId: string | null;
@@ -23,8 +25,11 @@ export default function RunShell({
   totalRounds,
 }: Props) {
   const router = useRouter();
+  const [showAbandonModal, setShowAbandonModal] = useState(false);
+
   const {
     state,
+    mounted,
     startRun,
     addLetter,
     deleteLetter,
@@ -35,30 +40,34 @@ export default function RunShell({
   } = useRunState({ userId, previousHighScore });
 
   function handleRunEnd() {
-    // Refresh server component so nav stats update
     router.refresh();
     resetRun();
   }
 
+  // Abandon: dispatch RESET (phase → config, localStorage cleared by useEffect),
+  // then refresh so server stats re-fetch.
+  function handleAbandonConfirm() {
+    setShowAbandonModal(false);
+    resetRun();
+    router.refresh();
+  }
+
+  if (!mounted) {
+    return (
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+          loading…
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-        position: "relative",
-      }}
-    >
-      {/* Phase: config */}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, position: "relative" }}>
       {state.phase === "config" && (
-        <RunConfigScreen
-          onStart={startRun}
-          isLoading={false}
-        />
+        <RunConfigScreen onStart={startRun} isLoading={false} />
       )}
 
-      {/* Phase: playing */}
       {state.phase === "playing" && (
         <RunGameScreen
           state={state}
@@ -66,11 +75,11 @@ export default function RunShell({
           onDelete={deleteLetter}
           onSubmit={submitGuess}
           onTimerExpired={onTimerExpired}
+          onAbandon={() => setShowAbandonModal(true)}
           showToast={showToast}
         />
       )}
 
-      {/* Phase: ended */}
       {state.phase === "ended" && (
         <RunEndScreen
           state={state}
@@ -81,6 +90,12 @@ export default function RunShell({
           onPlayAgain={handleRunEnd}
         />
       )}
+
+      <AbandonModal
+        isOpen={showAbandonModal}
+        onConfirm={handleAbandonConfirm}
+        onCancel={() => setShowAbandonModal(false)}
+      />
     </div>
   );
 }

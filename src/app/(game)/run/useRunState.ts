@@ -1,7 +1,7 @@
 "use client";
 // src/app/(game)/run/useRunState.ts
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   RunConfig,
   RunState,
@@ -12,13 +12,13 @@ import {
   EndResponse,
 } from "./types";
 
-// ── Storage key (account-scoped, mirrors daily pattern) ───────────────────────
+// ── Storage key ───────────────────────────────────────────────────────────────
 
 function storageKey(userId: string | null): string {
   return userId ? `mono-dialect-run-${userId}` : "mono-dialect-run";
 }
 
-// ── Initial state ─────────────────────────────────────────────────────────────
+// ── State helpers ─────────────────────────────────────────────────────────────
 
 function emptyGrid(rows: number, cols: number): string[][] {
   return Array.from({ length: rows }, () => Array(cols).fill(""));
@@ -48,7 +48,6 @@ function makeInitialState(): RunState {
     finalScore: 0,
     finalRounds: 0,
     isHighScore: false,
-    // transient UI — not persisted
     isSubmitting: false,
     shakeRow: null,
     revealingRow: null,
@@ -93,7 +92,14 @@ function newRoundGrid(wordLength: number, guessesAllowed: number) {
 function reducer(state: RunState, action: Action): RunState {
   switch (action.type) {
     case "LOAD":
-      return { ...action.state, isSubmitting: false, shakeRow: null, revealingRow: null, bounceRow: null, toast: null };
+      return {
+        ...action.state,
+        isSubmitting: false,
+        shakeRow: null,
+        revealingRow: null,
+        bounceRow: null,
+        toast: null,
+      };
 
     case "SET_PHASE":
       return { ...state, phase: action.phase };
@@ -137,7 +143,6 @@ function reducer(state: RunState, action: Action): RunState {
       return { ...state, shakeRow: null };
 
     case "REVEAL_DONE": {
-      // Apply feedback to revealed state, advance row, update keyMap
       const { feedback, res } = action;
       const revealed = state.revealed.map((r) => [...r]) as (Feedback | null)[][];
       revealed[state.currentRow] = feedback;
@@ -192,7 +197,7 @@ function reducer(state: RunState, action: Action): RunState {
       return {
         ...state,
         token: res.nextToken!,
-        wordLength: res.wordLength ?? state.wordLength,
+        wordLength: res.nextWordLength ?? state.wordLength,
         guessesAllowed: guesses,
         ...newRoundGrid(res.nextWordLength ?? state.wordLength, guesses),
         lifeLost: false,
@@ -238,41 +243,57 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
   const key = storageKey(userId);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [state, dispatch] = useReducer(reducer, undefined, () => {
-    // Rehydrate from localStorage on mount
-    if (typeof window === "undefined") return makeInitialState();
+  // Always start with config phase — identical on server and client
+  const [state, dispatch] = useReducer(reducer, undefined, makeInitialState);
+
+  // mounted flag — gates localStorage rehydration and persistence
+  const [mounted, setMounted] = useState(false);
+
+  // After mount: read localStorage and rehydrate if a valid in-progress run exists
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
         const saved = JSON.parse(raw) as RunState;
-        // Only restore if a run was in progress
         if (saved.phase === "playing" && saved.token) {
-          return { ...makeInitialState(), ...saved };
+          dispatch({ type: "LOAD", state: saved });
         }
       }
-    } catch { /* ignore */ }
-    return makeInitialState();
-  });
+    } catch {
+      // corrupt or missing — start fresh
+    }
+    setMounted(true);
+    // Only run once on mount; key won't change within a session
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Persist to localStorage whenever playing state changes
+  // Persist to localStorage whenever state changes (client-side only)
   useEffect(() => {
+    if (!mounted) return;
     if (state.phase === "playing") {
       try {
-        // Omit transient UI fields from storage
-        const { isSubmitting, shakeRow, revealingRow, bounceRow, toast, ...toSave } = state as RunState & Record<string, unknown>;
+        // Strip transient UI fields before writing
+        const {
+          isSubmitting, shakeRow, revealingRow, bounceRow, toast,
+          roundJustWon, lifeLost, roundScore,
+          ...toSave
+        } = state as RunState & Record<string, unknown>;
         localStorage.setItem(key, JSON.stringify(toSave));
-      } catch { /* storage full, ignore */ }
-    } else if (state.phase === "ended" || state.phase === "config") {
+      } catch { /* storage full */ }
+    } else {
       localStorage.removeItem(key);
     }
-  }, [state, key]);
+  }, [state, key, mounted]);
 
-  // ── Toast helper ──────────────────────────────────────────────────────────
+  // ── Toast ─────────────────────────────────────────────────────────────────
 
   const showToast = useCallback((msg: string, duration = 1800) => {
     dispatch({ type: "SET_TOAST", msg });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => dispatch({ type: "SET_TOAST", msg: null }), duration);
+    toastTimer.current = setTimeout(
+      () => dispatch({ type: "SET_TOAST", msg: null }),
+      duration
+    );
   }, []);
 
   // ── Start run ─────────────────────────────────────────────────────────────
@@ -292,7 +313,7 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
     }
   }, [showToast]);
 
-  // ── Key input ─────────────────────────────────────────────────────────────
+  // ── Input ─────────────────────────────────────────────────────────────────
 
   const addLetter = useCallback((letter: string) => {
     if (state.phase !== "playing" || state.isSubmitting) return;
@@ -317,7 +338,6 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
 
     const guess = state.grid[state.currentRow].join("");
     const guessesTaken = state.currentRow + 1;
-
     dispatch({ type: "SET_SUBMITTING", value: true });
 
     try {
@@ -334,15 +354,11 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
       }
 
       const data: SubmitResponse = await res.json();
-
-      // Animate reveal delay (80ms per tile)
       const revealDelay = state.wordLength * 80 + 200;
 
-      // Apply feedback after reveal animation
       setTimeout(() => {
         dispatch({ type: "REVEAL_DONE", feedback: data.feedback, res: data });
 
-        // ── Run over ──────────────────────────────────────────────────────
         if (data.runOver) {
           setTimeout(async () => {
             try {
@@ -358,7 +374,6 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
               const endData: EndResponse = await endRes.json();
               dispatch({ type: "END_RUN", res: endData, lastWord: data.word ?? "" });
             } catch {
-              // Persist what we have even if the save fails
               dispatch({
                 type: "END_RUN",
                 res: {
@@ -375,29 +390,21 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
           return;
         }
 
-        // ── Round won ─────────────────────────────────────────────────────
         if (data.won) {
           const msg = ["Brilliant!", "Magnificent!", "Impressive!", "Splendid!", "Great!", "Phew!"][
             Math.min(guessesTaken - 1, 5)
           ];
           showToast(`${msg} +${data.roundScore?.toLocaleString()} pts`);
-          // Transition to next round after bounce + brief pause
-          setTimeout(() => {
-            dispatch({ type: "NEXT_ROUND", res: data });
-          }, 1400);
+          setTimeout(() => dispatch({ type: "NEXT_ROUND", res: data }), 1400);
           return;
         }
 
-        // ── Life lost ─────────────────────────────────────────────────────
         if (data.lifeLost) {
           showToast(`Life lost — ${data.livesRemaining} remaining`);
-          setTimeout(() => {
-            dispatch({ type: "LIFE_LOST_NEXT", res: data });
-          }, 1400);
+          setTimeout(() => dispatch({ type: "LIFE_LOST_NEXT", res: data }), 1400);
           return;
         }
 
-        // ── Hint ──────────────────────────────────────────────────────────
         if (data.hint) {
           showToast(`Hint: position ${data.hint.position + 1} is "${data.hint.letter}"`);
         }
@@ -410,7 +417,7 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
     }
   }, [state, previousHighScore, showToast]);
 
-  // ── Timer expiry (called by TimerHUD) ────────────────────────────────────
+  // ── Timer expiry ──────────────────────────────────────────────────────────
 
   const onTimerExpired = useCallback(async () => {
     if (state.phase !== "playing") return;
@@ -462,6 +469,7 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
 
   return {
     state,
+    mounted,
     startRun,
     addLetter,
     deleteLetter,
