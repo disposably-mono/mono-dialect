@@ -10,12 +10,20 @@ export default async function NavWrapper() {
   const userId = session?.user?.id ?? null;
 
   let username: string | null = null;
+  let pendingCount = 0;
+
   if (userId) {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { username: true },
-    });
+    const [user, pending] = await Promise.all([
+      db.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      }),
+      db.friendRequest.count({
+        where: { receiverId: userId, status: "pending" },
+      }),
+    ]);
     username = user?.username ?? null;
+    pendingCount = pending;
   }
 
   const authSlot = session?.user ? (
@@ -37,5 +45,5 @@ export default async function NavWrapper() {
     </Link>
   );
 
-  return <Nav username={username} authSlot={authSlot} />;
+  return <Nav username={username} authSlot={authSlot} pendingCount={pendingCount} />;
 }

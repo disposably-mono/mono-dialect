@@ -4,19 +4,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
-  { label: "Daily", href: "/" },
-  { label: "Roguelike", href: "/run" },
-  { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Profile", href: null }, // dynamic — needs username
-] as const;
-
 interface NavProps {
   username?: string | null;
   authSlot?: React.ReactNode;
+  pendingCount?: number;
 }
 
-export default function Nav({ username, authSlot }: NavProps) {
+export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) {
   const pathname = usePathname();
 
   function isActive(href: string | null): boolean {
@@ -28,6 +22,13 @@ export default function Nav({ username, authSlot }: NavProps) {
   function getProfileHref(): string {
     return username ? `/profile/${username}` : "/api/auth/signin";
   }
+
+  const tabs = [
+    { label: "Daily", href: "/" },
+    { label: "Roguelike", href: "/run" },
+    { label: "Leaderboard", href: "/leaderboard", badge: pendingCount > 0 },
+    { label: "Profile", href: null },
+  ];
 
   return (
     <nav
@@ -68,11 +69,12 @@ export default function Nav({ username, authSlot }: NavProps) {
           borderRadius: 8,
         }}
       >
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const href = tab.label === "Profile" ? getProfileHref() : tab.href!;
-          const active = tab.label === "Profile"
-            ? pathname.startsWith("/profile")
-            : isActive(tab.href);
+          const active =
+            tab.label === "Profile"
+              ? pathname.startsWith("/profile")
+              : isActive(tab.href);
 
           return (
             <Link
@@ -89,9 +91,24 @@ export default function Nav({ username, authSlot }: NavProps) {
                 background: active ? "var(--bg-3)" : "none",
                 transition: "color 120ms, background 120ms",
                 whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
               }}
             >
               {tab.label}
+              {tab.badge && (
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--highlight, #C8A84B)",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
             </Link>
           );
         })}
