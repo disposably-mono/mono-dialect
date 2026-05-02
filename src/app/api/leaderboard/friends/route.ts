@@ -20,7 +20,7 @@ export async function GET() {
       select: { userAId: true, userBId: true },
     });
 
-    const friendIds = friendships.map((f) =>
+    const friendIds = friendships.map((f: { userAId: string; userBId: string }) =>
       f.userAId === userId ? f.userBId : f.userAId
     );
 
