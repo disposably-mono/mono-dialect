@@ -39,6 +39,8 @@ export default async function NavWrapper() {
         padding: "5px 14px",
         borderRadius: 6,
         textDecoration: "none",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
       }}
     >
       Sign in
