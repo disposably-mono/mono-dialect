@@ -122,7 +122,6 @@ export interface SubmitResponse {
   // On life lost
   lifeLost?: boolean;
   livesRemaining?: number;
-  nextToken?: string;
   // On still guessing
   hint?: { position: number; letter: string } | null;
 }
