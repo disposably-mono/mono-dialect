@@ -21,7 +21,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Check for taken username
   const existing = await db.user.findUnique({ where: { username } });
   if (existing) {
     return NextResponse.json(
@@ -30,16 +29,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // Save username and initialize stat records in one transaction
   await db.$transaction([
     db.user.update({
       where: { id: session.user.id },
       data: { username },
-    }),
-    db.dailyStats.upsert({
-      where: { userId: session.user.id },
-      create: { userId: session.user.id },
-      update: {},
     }),
     db.rogueStats.upsert({
       where: { userId: session.user.id },

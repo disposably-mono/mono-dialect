@@ -2,7 +2,6 @@
 
 // src/app/profile/[username]/ProfileClient.tsx
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -18,14 +17,6 @@ interface Profile {
   friendStatus: "none" | "pending_sent" | "pending_received" | "friends";
   pendingRequestId: string | null;
   globalRank: number | null;
-  daily: {
-    currentStreak: number;
-    longestStreak: number;
-    gamesPlayed: number;
-    gamesWon: number;
-    winRate: number;
-    guessDist: Record<string, number>;
-  };
   rogue: {
     highScore: number;
     totalRuns: number;
@@ -71,7 +62,7 @@ function Avatar({
           border: "1.5px solid var(--accent)",
         }}
       >
-        <Image src={image} alt={username} width={size} height={size} />
+        <img src={image} alt={username} width={size} height={size} style={{ display: "block" }} />
       </div>
     );
   }
@@ -94,37 +85,6 @@ function Avatar({
       }}
     >
       {initials}
-    </div>
-  );
-}
-
-// ─── Guess Distribution ───────────────────────────────────────────────────────
-
-function GuessDist({ dist }: { dist: Record<string, number> }) {
-  const values = [1, 2, 3, 4, 5, 6].map((n) => dist[String(n)] ?? 0);
-  const max = Math.max(...values, 1);
-  const bestGuess = values.indexOf(Math.max(...values)) + 1;
-
-  return (
-    <div className="guess-dist">
-      {values.map((count, i) => {
-        const n = i + 1;
-        const pct = Math.round((count / max) * 100);
-        const isHighlight = n === bestGuess && count > 0;
-        return (
-          <div key={n} className="dist-row">
-            <span className="dist-num">{n}</span>
-            <div className="dist-bar-wrap">
-              <div
-                className={`dist-bar ${isHighlight ? "highlight" : ""}`}
-                style={{ width: `${Math.max(pct, 6)}%` }}
-              >
-                <span className="dist-count">{count}</span>
-              </div>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -192,11 +152,7 @@ function FriendButton({
       </div>
     );
   }
-
-  if (status === "pending_sent") {
-    return <span className="friend-tag pending">Request sent</span>;
-  }
-
+  if (status === "pending_sent") return <span className="friend-tag pending">Request sent</span>;
   if (status === "pending_received") {
     return (
       <button className="action-btn" onClick={handleAccept} disabled={acting}>
@@ -204,7 +160,6 @@ function FriendButton({
       </button>
     );
   }
-
   return (
     <div>
       <button className="action-btn" onClick={handleAdd} disabled={acting}>
@@ -237,8 +192,6 @@ export default function ProfileClient({
           margin: 0 auto;
           padding: 32px 24px 80px;
         }
-
-        /* header */
         .profile-header {
           display: flex;
           align-items: flex-start;
@@ -247,9 +200,7 @@ export default function ProfileClient({
           padding-bottom: 28px;
           border-bottom: 0.5px solid var(--border);
         }
-
         .profile-meta { flex: 1; min-width: 0; }
-
         .profile-username {
           font-family: var(--font-serif, 'DM Serif Display', serif);
           font-size: 26px;
@@ -257,21 +208,18 @@ export default function ProfileClient({
           letter-spacing: -0.02em;
           margin-bottom: 4px;
         }
-
         .profile-handle {
           font-family: var(--font-mono, 'DM Mono', monospace);
           font-size: 11px;
           color: var(--text-muted);
           margin-bottom: 10px;
         }
-
         .profile-badges {
           display: flex;
           flex-wrap: wrap;
           gap: 6px;
           margin-bottom: 14px;
         }
-
         .profile-badge {
           display: inline-flex;
           align-items: center;
@@ -283,14 +231,11 @@ export default function ProfileClient({
           border: 0.5px solid var(--border);
           color: var(--text-muted);
         }
-
         .profile-badge.rank {
           color: var(--highlight, #C8A84B);
           border-color: color-mix(in srgb, var(--highlight, #C8A84B) 30%, transparent);
           background: color-mix(in srgb, var(--highlight, #C8A84B) 8%, transparent);
         }
-
-        /* friend button */
         .action-btn {
           height: 32px;
           padding: 0 16px;
@@ -304,26 +249,20 @@ export default function ProfileClient({
           cursor: pointer;
           transition: opacity 160ms;
         }
-
         .action-btn:hover:not(:disabled) { opacity: 0.82; }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
         .friend-btn-wrap { display: flex; align-items: center; gap: 8px; }
-
         .friend-tag {
           font-size: 11px;
           font-family: var(--font-mono, 'DM Mono', monospace);
           padding: 4px 10px;
           border-radius: 4px;
         }
-
         .friend-tag.friends {
           color: var(--accent);
           background: color-mix(in srgb, var(--accent) 12%, transparent);
         }
-
         .friend-tag.pending { color: var(--text-muted); background: var(--bg-3); }
-
         .unfriend-btn {
           font-size: 11px;
           font-family: var(--font-mono, 'DM Mono', monospace);
@@ -335,17 +274,13 @@ export default function ProfileClient({
           cursor: pointer;
           transition: color 160ms, border-color 160ms;
         }
-
         .unfriend-btn:hover { color: #E57373; border-color: #E57373; }
-
         .action-msg {
           font-size: 11px;
           font-family: var(--font-mono, 'DM Mono', monospace);
           color: #E57373;
           margin-top: 6px;
         }
-
-        /* section label */
         .section-label {
           font-size: 10px;
           font-family: var(--font-mono, 'DM Mono', monospace);
@@ -354,49 +289,12 @@ export default function ProfileClient({
           text-transform: uppercase;
           margin-bottom: 12px;
         }
-
-        /* stat grids */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 8px;
-          margin-bottom: 28px;
-        }
-
-        .stat-card {
-          background: var(--bg-2);
-          border: 0.5px solid var(--border);
-          border-radius: var(--radius-sm);
-          padding: 14px 12px;
-          text-align: center;
-        }
-
-        .stat-val {
-          display: block;
-          font-family: var(--font-mono, 'DM Mono', monospace);
-          font-size: 22px;
-          font-weight: 500;
-          color: var(--text-primary);
-          margin-bottom: 4px;
-        }
-
-        .stat-val.accent { color: var(--accent); }
-        .stat-val.highlight { color: var(--highlight, #C8A84B); }
-
-        .stat-label {
-          display: block;
-          font-size: 10px;
-          color: var(--text-muted);
-          line-height: 1.4;
-        }
-
         .rogue-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 8px;
           margin-bottom: 28px;
         }
-
         .rogue-card {
           background: var(--bg-2);
           border: 0.5px solid var(--border);
@@ -406,7 +304,6 @@ export default function ProfileClient({
           align-items: center;
           gap: 12px;
         }
-
         .rogue-icon {
           width: 32px;
           height: 32px;
@@ -419,7 +316,6 @@ export default function ProfileClient({
           flex-shrink: 0;
           font-size: 14px;
         }
-
         .rogue-val {
           display: block;
           font-family: var(--font-mono, 'DM Mono', monospace);
@@ -427,63 +323,13 @@ export default function ProfileClient({
           font-weight: 500;
           color: var(--text-primary);
         }
-
         .rogue-label {
           display: block;
           font-size: 10px;
           color: var(--text-muted);
           margin-top: 2px;
         }
-
-        /* guess dist */
-        .guess-dist { margin-bottom: 28px; }
-
-        .dist-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 5px;
-        }
-
-        .dist-num {
-          font-family: var(--font-mono, 'DM Mono', monospace);
-          font-size: 12px;
-          color: var(--text-muted);
-          width: 12px;
-          text-align: right;
-          flex-shrink: 0;
-        }
-
-        .dist-bar-wrap {
-          flex: 1;
-          height: 18px;
-          background: var(--bg-3);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-
-        .dist-bar {
-          height: 100%;
-          background: color-mix(in srgb, var(--accent) 50%, transparent);
-          border-radius: 2px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          padding-right: 6px;
-          transition: width 600ms cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .dist-bar.highlight { background: var(--accent); }
-
-        .dist-count {
-          font-family: var(--font-mono, 'DM Mono', monospace);
-          font-size: 10px;
-          color: var(--beige, #EAF0CE);
-        }
-
-        /* friends list */
         .friends-list { margin-bottom: 28px; }
-
         .friend-row {
           display: flex;
           align-items: center;
@@ -491,9 +337,7 @@ export default function ProfileClient({
           padding: 10px 0;
           border-bottom: 0.5px solid var(--border);
         }
-
         .friend-row:last-child { border-bottom: none; }
-
         .friend-name {
           flex: 1;
           font-size: 13px;
@@ -501,24 +345,19 @@ export default function ProfileClient({
           color: var(--text-primary);
           text-decoration: none;
         }
-
         .friend-name:hover { color: var(--accent); }
-
         .friend-score {
           font-family: var(--font-mono, 'DM Mono', monospace);
           font-size: 13px;
           color: var(--accent);
         }
-
         .empty-friends {
           font-size: 12px;
           color: var(--text-muted);
           font-family: var(--font-mono, 'DM Mono', monospace);
           padding: 16px 0;
         }
-
         @media (max-width: 600px) {
-          .stats-grid { grid-template-columns: repeat(2, 1fr); }
           .rogue-grid { grid-template-columns: 1fr; }
         }
       `}</style>
@@ -530,7 +369,6 @@ export default function ProfileClient({
           <div className="profile-meta">
             <h1 className="profile-username">{profile.username}</h1>
             <p className="profile-handle">joined {joinedDate}</p>
-
             <div className="profile-badges">
               {profile.globalRank && (
                 <span className="profile-badge rank">#{profile.globalRank} global</span>
@@ -539,7 +377,6 @@ export default function ProfileClient({
                 <span className="profile-badge">your profile</span>
               )}
             </div>
-
             {!profile.isYou && profile.isAuthenticated && (
               <FriendButton
                 profileId={profile.id}
@@ -548,7 +385,6 @@ export default function ProfileClient({
                 pendingRequestId={profile.pendingRequestId}
               />
             )}
-
             {!profile.isAuthenticated && (
               <Link href="/api/auth/signin" className="action-btn" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                 Sign in to add friend
@@ -556,30 +392,6 @@ export default function ProfileClient({
             )}
           </div>
         </div>
-
-        {/* Daily stats */}
-        <div className="section-label">Daily challenge</div>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-val">{profile.daily.gamesPlayed}</span>
-            <span className="stat-label">played</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-val accent">{profile.daily.winRate}%</span>
-            <span className="stat-label">win rate</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-val highlight">{profile.daily.currentStreak}</span>
-            <span className="stat-label">current streak</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-val">{profile.daily.longestStreak}</span>
-            <span className="stat-label">longest streak</span>
-          </div>
-        </div>
-
-        <div className="section-label">Guess distribution</div>
-        <GuessDist dist={profile.daily.guessDist} />
 
         {/* Roguelike stats */}
         <div className="section-label">Roguelike</div>
@@ -610,7 +422,7 @@ export default function ProfileClient({
           <div className="rogue-card">
             <div className="rogue-icon">📈</div>
             <div>
-              <span className="rogue-val accent">
+              <span className="rogue-val" style={{ color: "var(--accent)" }}>
                 {profile.rogue.totalScore > 999
                   ? `${(profile.rogue.totalScore / 1000).toFixed(1)}k`
                   : profile.rogue.totalScore}
@@ -621,9 +433,7 @@ export default function ProfileClient({
         </div>
 
         {/* Friends */}
-        <div className="section-label">
-          Friends ({friends.length})
-        </div>
+        <div className="section-label">Friends ({friends.length})</div>
         <div className="friends-list">
           {friends.length === 0 ? (
             <p className="empty-friends">No friends yet.</p>

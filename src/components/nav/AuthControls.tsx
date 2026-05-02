@@ -12,11 +12,8 @@ interface AuthControlsProps {
 export function AuthControls({ username, userId }: AuthControlsProps) {
   function handleSignOut() {
     if (userId) {
-      localStorage.removeItem(`mono-dialect-daily-${userId}`);
       localStorage.removeItem(`mono-dialect-run-${userId}`);
     }
-    // Also clear anonymous keys in case they exist
-    localStorage.removeItem("mono-dialect-daily");
     localStorage.removeItem("mono-dialect-run");
     signOut({ callbackUrl: "/" });
   }

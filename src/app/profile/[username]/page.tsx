@@ -33,15 +33,6 @@ export default async function ProfilePage({
       username: true,
       image: true,
       createdAt: true,
-      dailyStats: {
-        select: {
-          currentStreak: true,
-          longestStreak: true,
-          gamesPlayed: true,
-          gamesWon: true,
-          guessDist: true,
-        },
-      },
       rogueStats: {
         select: {
           highScore: true,
@@ -91,12 +82,6 @@ export default async function ProfilePage({
   });
   const globalRank = (user.rogueStats?.highScore ?? 0) > 0 ? usersAbove + 1 : null;
 
-  // Win rate
-  const winRate =
-    (user.dailyStats?.gamesPlayed ?? 0) > 0
-      ? Math.round(((user.dailyStats?.gamesWon ?? 0) / user.dailyStats!.gamesPlayed) * 100)
-      : 0;
-
   // Friends list
   const friendships = await db.friendship.findMany({
     where: { OR: [{ userAId: user.id }, { userBId: user.id }] },
@@ -124,14 +109,6 @@ export default async function ProfilePage({
           friendStatus,
           pendingRequestId,
           globalRank,
-          daily: {
-            currentStreak: user.dailyStats?.currentStreak ?? 0,
-            longestStreak: user.dailyStats?.longestStreak ?? 0,
-            gamesPlayed: user.dailyStats?.gamesPlayed ?? 0,
-            gamesWon: user.dailyStats?.gamesWon ?? 0,
-            winRate,
-            guessDist: (user.dailyStats?.guessDist ?? {}) as Record<string, number>,
-          },
           rogue: {
             highScore: user.rogueStats?.highScore ?? 0,
             totalRuns: user.rogueStats?.totalRuns ?? 0,

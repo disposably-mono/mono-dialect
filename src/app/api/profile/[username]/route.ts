@@ -19,15 +19,6 @@ export async function GET(
         username: true,
         image: true,
         createdAt: true,
-        dailyStats: {
-          select: {
-            currentStreak: true,
-            longestStreak: true,
-            gamesPlayed: true,
-            gamesWon: true,
-            guessDist: true,
-          },
-        },
         rogueStats: {
           select: {
             highScore: true,
@@ -45,6 +36,8 @@ export async function GET(
 
     // Friendship status between viewer and this profile
     let friendStatus: "none" | "pending_sent" | "pending_received" | "friends" = "none";
+    let pendingRequestId: string | null = null;
+
     if (viewerId && viewerId !== user.id) {
       const [friendship, sentReq, recvReq] = await Promise.all([
         db.friendship.findFirst({
@@ -63,9 +56,14 @@ export async function GET(
         }),
       ]);
 
-      if (friendship) friendStatus = "friends";
-      else if (sentReq?.status === "pending") friendStatus = "pending_sent";
-      else if (recvReq?.status === "pending") friendStatus = "pending_received";
+      if (friendship) {
+        friendStatus = "friends";
+      } else if (sentReq?.status === "pending") {
+        friendStatus = "pending_sent";
+      } else if (recvReq?.status === "pending") {
+        friendStatus = "pending_received";
+        pendingRequestId = recvReq.id;
+      }
     }
 
     // Compute global rank
@@ -74,12 +72,6 @@ export async function GET(
     });
     const globalRank = (user.rogueStats?.highScore ?? 0) > 0 ? usersAbove + 1 : null;
 
-    // Win rate
-    const winRate =
-      (user.dailyStats?.gamesPlayed ?? 0) > 0
-        ? Math.round(((user.dailyStats?.gamesWon ?? 0) / user.dailyStats!.gamesPlayed) * 100)
-        : 0;
-
     return NextResponse.json({
       profile: {
         id: user.id,
@@ -87,16 +79,10 @@ export async function GET(
         image: user.image,
         joinedAt: user.createdAt,
         isYou: viewerId === user.id,
+        isAuthenticated: viewerId !== null,
         friendStatus,
+        pendingRequestId,
         globalRank,
-        daily: {
-          currentStreak: user.dailyStats?.currentStreak ?? 0,
-          longestStreak: user.dailyStats?.longestStreak ?? 0,
-          gamesPlayed: user.dailyStats?.gamesPlayed ?? 0,
-          gamesWon: user.dailyStats?.gamesWon ?? 0,
-          winRate,
-          guessDist: user.dailyStats?.guessDist ?? {},
-        },
         rogue: {
           highScore: user.rogueStats?.highScore ?? 0,
           totalRuns: user.rogueStats?.totalRuns ?? 0,

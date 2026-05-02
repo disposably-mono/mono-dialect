@@ -15,7 +15,7 @@ export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) 
 
   function isActive(href: string | null): boolean {
     if (!href) return false;
-    if (href === "/") return pathname === "/";
+    if (href === "/run") return pathname === "/run" || pathname === "/";
     return pathname.startsWith(href);
   }
 
@@ -24,8 +24,7 @@ export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) 
   }
 
   const tabs = [
-    { label: "Daily", href: "/" },
-    { label: "Roguelike", href: "/run" },
+    { label: "Play", href: "/run" },
     { label: "Leaderboard", href: "/leaderboard", badge: pendingCount > 0 },
     { label: "Profile", href: null },
   ];
@@ -45,7 +44,6 @@ export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) 
         zIndex: 10,
       }}
     >
-      {/* Logo */}
       <Link
         href="/"
         style={{
@@ -59,7 +57,6 @@ export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) 
         mono<span style={{ color: "var(--accent)" }}>—</span>dialect
       </Link>
 
-      {/* Tabs */}
       <div
         style={{
           display: "flex",
@@ -114,7 +111,6 @@ export default function Nav({ username, authSlot, pendingCount = 0 }: NavProps) 
         })}
       </div>
 
-      {/* Right slot */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {authSlot}
       </div>
