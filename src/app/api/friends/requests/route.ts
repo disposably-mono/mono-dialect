@@ -3,6 +3,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+type FriendRequestRow = {
+  id: string;
+  createdAt: Date;
+  sender: {
+    id: string;
+    username: string | null;
+    image: string | null;
+    rogueStats: { highScore: number } | null;
+  };
+};
+
 // GET — fetch pending incoming requests for the current user
 export async function GET() {
   try {
@@ -31,7 +42,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      requests: requests.map((r) => ({
+      requests: requests.map((r: FriendRequestRow) => ({
         requestId: r.id,
         createdAt: r.createdAt,
         sender: {

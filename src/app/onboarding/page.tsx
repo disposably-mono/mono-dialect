@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   if (!session?.user) redirect("/");
 
   // Already has a username — skip onboarding
-  if ((session.user as any).username) redirect("/");
+  if ((session.user as { username?: string | null }).username) redirect("/");
 
   return (
     <main

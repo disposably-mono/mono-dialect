@@ -1,4 +1,5 @@
 "use client";
+// src/components/game/useGameState.ts
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Feedback, GameStatus } from "./types";
@@ -42,8 +43,8 @@ interface UseGameStateParams {
   hasPlayedToday: boolean;
   today: string;
   onGameEnd?: () => void;
-  userId?: string;                  // ── NEW
-  boardState: BoardStateData | null; // ── NEW
+  userId?: string;
+  boardState: BoardStateData | null;
 }
 
 function makeGrid(rows: number, cols: number): string[][] {
@@ -112,11 +113,18 @@ const INITIAL: GameState = {
 
 export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardState }: UseGameStateParams) {
   const [state, setState] = useState<GameState>(INITIAL);
-  const stateRef = useRef<GameState>(state);
-  stateRef.current = state;
+  const stateRef = useRef<GameState>(INITIAL);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onGameEndRef = useRef(onGameEnd);
-  onGameEndRef.current = onGameEnd;
+
+  // Keep refs in sync inside effects — never during render
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    onGameEndRef.current = onGameEnd;
+  }, [onGameEnd]);
 
   function showToast(msg: string, duration = 1800) {
     setState(s => ({ ...s, toast: msg }));
@@ -134,12 +142,9 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
       //    2. DB boardState prop (cross-device rehydration for auth'd users)
       //    3. Fresh fetch from /api/daily-word (new game)
 
-      // ── Check localStorage first (account-scoped key)
       const stored = loadStored(today, userId);
 
       if (stored) {
-        // localStorage is authoritative for this device — use it regardless
-        // of hasPlayedToday, since it's already scoped to this account
         setState(s => ({
           ...s,
           ...stored,
@@ -151,14 +156,9 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
 
       // ── No localStorage — check if DB has a board snapshot (cross-device)
       if (boardState) {
-        // Rehydrate from DB snapshot. This covers:
-        //   - Account A cleared cookies and signed back in
-        //   - Account A signing in on a different device
         const grid = boardState.grid;
         const revealed = boardState.revealed as (Feedback | null)[][];
 
-        // We need the token for potential further guesses (mid-game rehydration).
-        // Fetch it fresh — /api/daily-word never exposes the word, just length+token.
         let token = "";
         let date = today;
         if (boardState.status === "playing") {
@@ -181,7 +181,6 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
           ...(boardState.word && { word: boardState.word }),
         };
 
-        // Write to localStorage so subsequent loads on this device are instant
         saveStored(patch, userId);
 
         setState(s => ({
@@ -195,8 +194,6 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
 
       // ── No localStorage, no DB snapshot — fresh game
       if (hasPlayedToday) {
-        // Edge case: DB says played but boardState is null (shouldn't happen
-        // after this fix, but guard anyway). Show locked empty board.
         try {
           const res = await fetch("/api/daily-word");
           const data = await res.json();
@@ -269,7 +266,6 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
           token: s.token,
           guessNumber: s.currentRow + 1,
           totalGuesses: MAX_ROWS,
-          // ── NEW: send full grid + revealed so server can persist board state
           grid: s.grid,
           revealed: s.revealed,
         }),
@@ -301,7 +297,7 @@ export function useGameState({ hasPlayedToday, today, onGameEnd, userId, boardSt
       };
 
       setState(p => ({ ...p, ...patch, keyMap: newKeyMap, revealingRow }));
-      saveStored(patch, userId); // ── CHANGED: account-scoped key
+      saveStored(patch, userId);
 
       const revealDuration = s.wordLength * 80 + 350;
 

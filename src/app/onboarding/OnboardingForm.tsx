@@ -1,12 +1,12 @@
-// src/app/onboarding/OnboardingForm.tsx
 "use client";
+// src/app/onboarding/OnboardingForm.tsx
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const RULES = /^[a-zA-Z0-9_]{3,20}$/;
 
-export default function OnboardingForm({ userId }: { userId: string }) {
+export default function OnboardingForm({ userId: _userId }: { userId: string }) {
   const [value, setValue]     = useState("");
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,7 +74,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
             color: "var(--text-muted)",
           }}
         >
-          This is how you'll appear on leaderboards
+          This is how you&apos;ll appear on leaderboards
         </div>
       </div>
 

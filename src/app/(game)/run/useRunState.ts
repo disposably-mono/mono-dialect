@@ -262,7 +262,8 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
     } catch {
       // corrupt or missing — start fresh
     }
-    setMounted(true);
+    // Use queueMicrotask to avoid synchronous setState within effect body
+    queueMicrotask(() => setMounted(true));
     // Only run once on mount; key won't change within a session
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

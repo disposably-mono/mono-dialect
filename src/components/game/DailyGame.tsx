@@ -53,7 +53,7 @@ export function DailyGame({
     return (
       <div style={{ height: 548, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>
-          Loading today's word...
+          Loading today&apos;s word...
         </span>
       </div>
     );

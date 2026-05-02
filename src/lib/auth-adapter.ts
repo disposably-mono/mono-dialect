@@ -17,19 +17,19 @@ export function PrismaAdapterManual(): Adapter {
           emailVerified: data.emailVerified ?? null,
         },
       });
-      return { ...user, emailVerified: user.emailVerified ?? null };
+      return { ...user, email: user.email!, emailVerified: user.emailVerified ?? null };
     },
 
     async getUser(id) {
       const user = await db.user.findUnique({ where: { id } });
       if (!user) return null;
-      return { ...user, emailVerified: user.emailVerified ?? null };
+      return { ...user, email: user.email!, emailVerified: user.emailVerified ?? null };
     },
 
     async getUserByEmail(email) {
       const user = await db.user.findUnique({ where: { email } });
       if (!user) return null;
-      return { ...user, emailVerified: user.emailVerified ?? null };
+      return { ...user, email: user.email!, emailVerified: user.emailVerified ?? null };
     },
 
     async getUserByAccount({ provider, providerAccountId }) {
@@ -38,7 +38,11 @@ export function PrismaAdapterManual(): Adapter {
         include: { user: true },
       });
       if (!account) return null;
-      return { ...account.user, emailVerified: account.user.emailVerified ?? null };
+      return {
+        ...account.user,
+        email: account.user.email!,
+        emailVerified: account.user.emailVerified ?? null,
+      };
     },
 
     async updateUser(data) {
@@ -51,7 +55,7 @@ export function PrismaAdapterManual(): Adapter {
           emailVerified: data.emailVerified ?? null,
         },
       });
-      return { ...user, emailVerified: user.emailVerified ?? null };
+      return { ...user, email: user.email!, emailVerified: user.emailVerified ?? null };
     },
 
     async deleteUser(id) {
@@ -96,7 +100,11 @@ export function PrismaAdapterManual(): Adapter {
       if (!session) return null;
       return {
         session,
-        user: { ...session.user, emailVerified: session.user.emailVerified ?? null },
+        user: {
+          ...session.user,
+          email: session.user.email!,
+          emailVerified: session.user.emailVerified ?? null,
+        },
       };
     },
 
