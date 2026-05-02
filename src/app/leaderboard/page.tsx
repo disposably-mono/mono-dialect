@@ -6,11 +6,27 @@ import LeaderboardClient from "./LeaderboardClient";
 
 export const revalidate = 60;
 
+type UserRow = {
+  id: string;
+  username: string | null;
+  image: string | null;
+  rogueStats: {
+    highScore: number;
+    totalRuns: number;
+    totalRounds: number;
+    totalScore: number;
+  } | null;
+};
+
+type FriendshipRow = {
+  userAId: string;
+  userBId: string;
+};
+
 export default async function LeaderboardPage() {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  // Fetch global top 100
   const users = await db.user.findMany({
     where: {
       username: { not: null },
@@ -34,8 +50,8 @@ export default async function LeaderboardPage() {
   });
 
   const globalEntries = users
-    .filter((u) => u.rogueStats && u.rogueStats.highScore > 0)
-    .map((u, i) => ({
+    .filter((u: UserRow) => u.rogueStats && u.rogueStats.highScore > 0)
+    .map((u: UserRow, i: number) => ({
       rank: i + 1,
       userId: u.id,
       username: u.username!,
@@ -47,7 +63,6 @@ export default async function LeaderboardPage() {
       totalScore: u.rogueStats!.totalScore,
     }));
 
-  // Fetch pending incoming requests count for badge
   let pendingCount = 0;
   let friendEntries: typeof globalEntries = [];
 
@@ -64,9 +79,10 @@ export default async function LeaderboardPage() {
 
     pendingCount = pending;
 
-    const friendIds = friendships.map((f) =>
+    const friendIds = friendships.map((f: FriendshipRow) =>
       f.userAId === userId ? f.userBId : f.userAId
     );
+
     const allIds = [userId, ...friendIds];
 
     const friendUsers = await db.user.findMany({
@@ -87,7 +103,7 @@ export default async function LeaderboardPage() {
       orderBy: { rogueStats: { highScore: "desc" } },
     });
 
-    friendEntries = friendUsers.map((u, i) => ({
+    friendEntries = friendUsers.map((u: UserRow, i: number) => ({
       rank: i + 1,
       userId: u.id,
       username: u.username!,

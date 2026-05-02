@@ -5,6 +5,18 @@ import { db } from "@/lib/db";
 import NavWrapper from "@/components/nav/NavWrapper";
 import ProfileClient from "./ProfileClient";
 
+type FriendUser = {
+  id: string;
+  username: string | null;
+  image: string | null;
+  rogueStats: { highScore: number } | null;
+};
+
+type FriendshipRow = {
+  userA: FriendUser;
+  userB: FriendUser;
+};
+
 export default async function ProfilePage({
   params,
 }: {
@@ -94,7 +106,7 @@ export default async function ProfilePage({
     },
   });
 
-  const friends = friendships.map((f) =>
+  const friends = friendships.map((f: FriendshipRow) =>
     f.userA.id === user.id ? f.userB : f.userA
   );
 
@@ -127,7 +139,7 @@ export default async function ProfilePage({
             totalScore: user.rogueStats?.totalScore ?? 0,
           },
         }}
-        friends={friends.map((f) => ({
+        friends={friends.map((f: FriendUser) => ({
           id: f.id,
           username: f.username!,
           image: f.image,
