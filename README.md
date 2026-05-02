@@ -124,12 +124,11 @@ streakMultiplier = 1 + (consecutiveRounds × 0.05), capped at 2.00×
 
 - [x] Project scaffold + design tokens
 - [x] Docker + PostgreSQL + Prisma schema
-- [ ] Auth.js v5 Google OAuth
-- [ ] Daily Challenge mode
-- [ ] Roguelike Run mode
-- [ ] Leaderboard + friends system
-- [ ] Profile + stats panels
-- [ ] Vercel production deployment
+- [x] Auth.js v5 Google OAuth
+- [x] Roguelike Run mode
+- [x] Leaderboard + friends system
+- [x] Profile + stats panels
+- [x] Vercel production deployment
 
 ---
 
