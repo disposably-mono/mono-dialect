@@ -24,27 +24,23 @@ interface Props {
 
 function StepLabel({ number, label }: { number: string; label: string }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "10px",
-          color: "var(--accent)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-        }}
-      >
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        color: "var(--accent)",
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+      }}>
         {number}
       </span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "10px",
-          color: "var(--text-muted)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-        }}
-      >
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        color: "var(--text-muted)",
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+      }}>
         · {label}
       </span>
     </div>
@@ -67,9 +63,7 @@ function OptionCard({
   tag?: string;
 }) {
   const borderColor = selected
-    ? accent === "green"
-      ? "var(--accent)"
-      : "var(--lavender-grey, #8D99AE)"
+    ? accent === "green" ? "var(--accent)" : "var(--lavender-grey, #8D99AE)"
     : "var(--border)";
   const bg = selected
     ? accent === "green"
@@ -84,7 +78,7 @@ function OptionCard({
         background: bg,
         border: `1px solid ${borderColor}`,
         borderRadius: "var(--radius-md)",
-        padding: "14px",
+        padding: 14,
         cursor: "pointer",
         textAlign: "left",
         transition: "border-color 160ms var(--ease), background 160ms var(--ease)",
@@ -92,75 +86,44 @@ function OptionCard({
         width: "100%",
       }}
     >
-      {/* Selection dot */}
-      <span
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          width: "7px",
-          height: "7px",
-          borderRadius: "50%",
-          background: accent === "green" ? "var(--accent)" : "var(--lavender-grey, #8D99AE)",
-          opacity: selected ? 1 : 0,
-          transition: "opacity 160ms var(--ease)",
-          display: "block",
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          marginBottom: "4px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--text-primary)",
-            fontFamily: "var(--font-sans)",
-          }}
-        >
+      <span style={{
+        position: "absolute",
+        top: 10,
+        right: 10,
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: accent === "green" ? "var(--accent)" : "var(--lavender-grey, #8D99AE)",
+        opacity: selected ? 1 : 0,
+        transition: "opacity 160ms var(--ease)",
+        display: "block",
+      }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", fontFamily: "var(--font-sans)" }}>
           {title}
         </span>
         {tag && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              color: accent === "green" ? "var(--accent)" : "var(--lavender-grey, #8D99AE)",
-              border: `0.5px solid currentColor`,
-              borderRadius: "4px",
-              padding: "1px 5px",
-              letterSpacing: "0.05em",
-            }}
-          >
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 9,
+            color: accent === "green" ? "var(--accent)" : "var(--lavender-grey, #8D99AE)",
+            border: "0.5px solid currentColor",
+            borderRadius: 4,
+            padding: "1px 5px",
+            letterSpacing: "0.05em",
+          }}>
             {tag}
           </span>
         )}
       </div>
-      <p
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          lineHeight: 1.5,
-          fontFamily: "var(--font-sans)",
-          margin: 0,
-        }}
-      >
+      <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5, fontFamily: "var(--font-sans)", margin: 0 }}>
         {description}
       </p>
     </button>
   );
 }
 
-function ParamButton({
-  active,
-  onClick,
-  children,
-}: {
+function ParamButton({ active, onClick, children }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -170,17 +133,16 @@ function ParamButton({
       onClick={onClick}
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: "11px",
+        fontSize: 11,
         padding: "6px 12px",
         borderRadius: "var(--radius-sm)",
         border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
-        background: active
-          ? "color-mix(in srgb, var(--accent) 10%, var(--bg-2))"
-          : "var(--bg-2)",
+        background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-2))" : "var(--bg-2)",
         color: active ? "var(--accent)" : "var(--text-muted)",
         cursor: "pointer",
         transition: "all 120ms var(--ease)",
         whiteSpace: "nowrap",
+        flex: 1,
       }}
     >
       {children}
@@ -188,49 +150,30 @@ function ParamButton({
   );
 }
 
-function MultRow({
-  label,
-  value,
-  highlight,
-}: {
+function MultRow({ label, value, highlight }: {
   label: string;
   value: string;
   highlight?: boolean;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "8px",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "12px",
-          color: "var(--text-sec, var(--text-muted))",
-          fontFamily: "var(--font-sans)",
-        }}
-      >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)" }}>
         {label}
       </span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: highlight ? "20px" : "13px",
-          fontWeight: 500,
-          color: highlight ? "var(--highlight, #C8A84B)" : "var(--accent)",
-          transition: "all 300ms var(--ease)",
-        }}
-      >
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: highlight ? 20 : 13,
+        fontWeight: 500,
+        color: highlight ? "var(--highlight, #C8A84B)" : "var(--accent)",
+        transition: "all 300ms var(--ease)",
+      }}>
         {value}
       </span>
     </div>
   );
 }
 
-// ── Scoring reference sidebar — width unified to 280px ────────────────────────
+// ── Scoring reference sidebar ─────────────────────────────────────────────────
 
 function ScoringSidebar() {
   const rows = [
@@ -242,119 +185,84 @@ function ScoringSidebar() {
   ];
 
   return (
-    <aside
-      style={{
-        padding: "24px 20px",
-        borderLeft: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px",
-        width: "280px",
-        flexShrink: 0,
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "16px",
-          color: "var(--text-primary)",
-          margin: 0,
-          letterSpacing: "-0.02em",
-        }}
-      >
+    <aside className="rcs-sidebar">
+      <h2 style={{
+        fontFamily: "var(--font-serif)",
+        fontSize: 16,
+        color: "var(--text-primary)",
+        margin: 0,
+        letterSpacing: "-0.02em",
+      }}>
         Scoring formula
       </h2>
 
-      <div
-        style={{
-          background: "var(--bg-2)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-md)",
-          overflow: "hidden",
-        }}
-      >
+      <div style={{
+        background: "var(--bg-2)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        overflow: "hidden",
+      }}>
         {rows.map((r, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "12px",
-              padding: "9px 12px",
-              borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
-            }}
-          >
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-              {r.label}
-            </span>
-            <span style={{ fontSize: "10px", color: "var(--accent)", fontFamily: "var(--font-mono)", textAlign: "right" }}>
-              {r.value}
-            </span>
+          <div key={i} style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "9px 12px",
+            borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+          }}>
+            <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>{r.label}</span>
+            <span style={{ fontSize: 10, color: "var(--accent)", fontFamily: "var(--font-mono)", textAlign: "right" }}>{r.value}</span>
           </div>
         ))}
       </div>
 
       <div>
-        <p
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
+        <p style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          color: "var(--text-muted)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}>
           Word length scaling
         </p>
-        <div
-          style={{
-            background: "var(--bg-2)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-md)",
-            overflow: "hidden",
-          }}
-        >
+        <div style={{
+          background: "var(--bg-2)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-md)",
+          overflow: "hidden",
+        }}>
           {[
             { label: "Easy 3→4→5→6", value: "every 2 wins" },
             { label: "Hard 5→6→7", value: "every 2 wins" },
           ].map((r, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "9px 12px",
-                borderBottom: i === 0 ? "1px solid var(--border)" : "none",
-              }}
-            >
-              <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-                {r.label}
-              </span>
-              <span style={{ fontSize: "11px", color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-mono)" }}>
-                {r.value}
-              </span>
+            <div key={i} style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "9px 12px",
+              borderBottom: i === 0 ? "1px solid var(--border)" : "none",
+            }}>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>{r.label}</span>
+              <span style={{ fontSize: 11, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-mono)" }}>{r.value}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Example callout */}
-      <div
-        style={{
-          background: "color-mix(in srgb, var(--accent) 6%, var(--bg-2))",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-md)",
-          padding: "12px",
-        }}
-      >
-        <p style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: "6px", letterSpacing: "0.05em" }}>
+      <div style={{
+        background: "color-mix(in srgb, var(--accent) 6%, var(--bg-2))",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        padding: 12,
+      }}>
+        <p style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 6, letterSpacing: "0.05em" }}>
           EXAMPLE · Hard / 30s / 5-round streak
         </p>
-        <p style={{ fontSize: "11px", color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)", lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 11, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)", lineHeight: 1.6, margin: 0 }}>
           (400 + 15) × 1.75 × 2.00 × 1.25
         </p>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: "18px", color: "var(--highlight, #C8A84B)", fontWeight: 500, margin: "4px 0 0" }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 18, color: "var(--highlight, #C8A84B)", fontWeight: 500, margin: "4px 0 0" }}>
           = 1,816 pts
         </p>
       </div>
@@ -382,279 +290,319 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
     subMode === "timed"
       ? TIMED_MULTIPLIERS[timeLimit]
       : LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`] ?? 2.5;
-  const streakMult = 1.25; // preview: est. 5-round streak
+  const streakMult = 1.25;
   const combined = getCombinedMultiplier(config, 5);
 
-  function handleStart() {
-    onStart(config);
-  }
+  const livesConfigValid = subMode !== "lives" || !!LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        minHeight: 0,
-        overflow: "hidden",
-      }}
-    >
-      {/* ── Main config area ── */}
-      <div
-        style={{
-          flex: 1,
-          padding: "28px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "24px",
-          overflowY: "auto",
-          minWidth: 0,
-        }}
-      >
-        <div>
-          <h1
-            style={{
+    <>
+      <style>{`
+        .rcs-root {
+          display: flex;
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .rcs-main {
+          flex: 1;
+          padding: 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          overflow-y: auto;
+          min-width: 0;
+        }
+
+        .rcs-sidebar {
+          padding: 24px 20px;
+          border-left: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          width: 280px;
+          flex-shrink: 0;
+          overflow-y: auto;
+        }
+
+        .rcs-option-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .rcs-param-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .rcs-param-row-label {
+          font-size: 12px;
+          color: var(--text-muted);
+          font-family: var(--font-sans);
+          white-space: nowrap;
+        }
+
+        .rcs-param-btns {
+          display: flex;
+          gap: 6px;
+          flex: 1;
+          justify-content: flex-end;
+        }
+
+        /* Mobile multiplier preview accordion */
+        .rcs-mobile-mult {
+          display: none;
+        }
+
+        /* ── Mobile overrides ── */
+        @media (max-width: 640px) {
+          .rcs-root {
+            flex-direction: column;
+            overflow-y: auto;
+            height: auto;
+            min-height: 100%;
+          }
+
+          .rcs-main {
+            padding: 20px 16px;
+            gap: 20px;
+            overflow-y: visible;
+          }
+
+          .rcs-sidebar {
+            display: none;
+          }
+
+          .rcs-mobile-mult {
+            display: block;
+          }
+
+          .rcs-option-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .rcs-param-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
+          .rcs-param-btns {
+            width: 100%;
+            justify-content: flex-start;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .rcs-option-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="rcs-root">
+        {/* ── Main config area ── */}
+        <div className="rcs-main">
+          <div>
+            <h1 style={{
               fontFamily: "var(--font-serif)",
-              fontSize: "22px",
+              fontSize: "clamp(18px, 5vw, 22px)",
               color: "var(--text-primary)",
               letterSpacing: "-0.02em",
               margin: 0,
-            }}
-          >
-            Configure run
-          </h1>
-          <p
-            style={{
-              fontSize: "12px",
+            }}>
+              Configure run
+            </h1>
+            <p style={{
+              fontSize: 12,
               color: "var(--text-muted)",
               fontFamily: "var(--font-sans)",
-              marginTop: "4px",
+              marginTop: 4,
               marginBottom: 0,
-            }}
-          >
-            Set your parameters and see your score multiplier before starting.
-          </p>
-        </div>
-
-        {/* Step 1: Sub-mode */}
-        <div>
-          <StepLabel number="01" label="Sub-mode" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <OptionCard
-              selected={subMode === "timed"}
-              accent="green"
-              onClick={() => setSubMode("timed")}
-              title="Timed"
-              description="Solve each word before the clock runs out. Timer resets per round."
-            />
-            <OptionCard
-              selected={subMode === "lives"}
-              accent="green"
-              onClick={() => setSubMode("lives")}
-              title="Lives"
-              description="Configure lives and guesses. Lose a life when you exhaust your guesses."
-            />
+            }}>
+              Set your parameters and see your score multiplier before starting.
+            </p>
           </div>
-        </div>
 
-        {/* Step 2: Difficulty */}
-        <div>
-          <StepLabel number="02" label="Difficulty" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <OptionCard
-              selected={difficulty === "easy"}
-              accent="green"
-              onClick={() => setDifficulty("easy")}
-              title="Easy"
-              tag="1.00×"
-              description="3–6 letters · Common words · Hints on last 2 guesses"
-            />
-            <OptionCard
-              selected={difficulty === "hard"}
-              accent="lavender"
-              onClick={() => setDifficulty("hard")}
-              title="Hard"
-              tag="1.75×"
-              description="5–7 letters · Rare words only · No hints ever"
-            />
-          </div>
-        </div>
-
-        {/* Step 3: Sub-mode params */}
-        {subMode === "timed" && (
+          {/* Step 1: Sub-mode */}
           <div>
-            <StepLabel number="03" label="Time limit per round" />
-            <div
-              style={{
-                background: "var(--bg-2)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-md)",
-                padding: "14px 16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-              }}
-            >
-              <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-                Seconds per round
-              </span>
-              <div style={{ display: "flex", gap: "6px" }}>
-                {([30, 45, 60] as TimeLimit[]).map((t) => (
-                  <ParamButton key={t} active={timeLimit === t} onClick={() => setTimeLimit(t)}>
-                    {t}s · {TIMED_MULTIPLIERS[t].toFixed(2)}×
-                  </ParamButton>
-                ))}
-              </div>
+            <StepLabel number="01" label="Sub-mode" />
+            <div className="rcs-option-grid">
+              <OptionCard
+                selected={subMode === "timed"}
+                accent="green"
+                onClick={() => setSubMode("timed")}
+                title="Timed"
+                description="Solve each word before the clock runs out. Timer resets per round."
+              />
+              <OptionCard
+                selected={subMode === "lives"}
+                accent="green"
+                onClick={() => setSubMode("lives")}
+                title="Lives"
+                description="Configure lives and guesses. Lose a life when you exhaust your guesses."
+              />
             </div>
           </div>
-        )}
 
-        {subMode === "lives" && (
+          {/* Step 2: Difficulty */}
           <div>
-            <StepLabel number="03" label="Lives configuration" />
-            <div
-              style={{
+            <StepLabel number="02" label="Difficulty" />
+            <div className="rcs-option-grid">
+              <OptionCard
+                selected={difficulty === "easy"}
+                accent="green"
+                onClick={() => setDifficulty("easy")}
+                title="Easy"
+                tag="1.00×"
+                description="3–6 letters · Common words · Hints on last 2 guesses"
+              />
+              <OptionCard
+                selected={difficulty === "hard"}
+                accent="lavender"
+                onClick={() => setDifficulty("hard")}
+                title="Hard"
+                tag="1.75×"
+                description="5–7 letters · Rare words only · No hints ever"
+              />
+            </div>
+          </div>
+
+          {/* Step 3: Sub-mode params */}
+          {subMode === "timed" && (
+            <div>
+              <StepLabel number="03" label="Time limit per round" />
+              <div style={{
                 background: "var(--bg-2)",
                 border: "1px solid var(--border)",
                 borderRadius: "var(--radius-md)",
                 padding: "14px 16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                }}
-              >
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-                  Lives
-                </span>
-                <div style={{ display: "flex", gap: "6px" }}>
-                  {([1, 2, 3] as LivesCount[]).map((l) => (
-                    <ParamButton key={l} active={lives === l} onClick={() => setLives(l)}>
-                      {l}
+                gap: 10,
+              }}>
+                <span className="rcs-param-row-label">Seconds per round</span>
+                <div className="rcs-param-btns">
+                  {([30, 45, 60] as TimeLimit[]).map((t) => (
+                    <ParamButton key={t} active={timeLimit === t} onClick={() => setTimeLimit(t)}>
+                      {t}s · {TIMED_MULTIPLIERS[t].toFixed(2)}×
                     </ParamButton>
                   ))}
                 </div>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                }}
-              >
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-                  Guesses / life
-                </span>
-                <div style={{ display: "flex", gap: "6px" }}>
-                  {([3, 4, 5] as GuessesPerLife[]).map((g) => {
-                    const key = `${lives}-${g}`;
-                    const valid = key in LIVES_MULTIPLIERS;
-                    return valid ? (
-                      <ParamButton
-                        key={g}
-                        active={guessesPerLife === g}
-                        onClick={() => setGuessesPerLife(g)}
-                      >
-                        {g}
-                      </ParamButton>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-              {/* Validity note */}
-              {!LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`] && (
-                <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-sans)", margin: 0 }}>
-                  Select a valid lives / guesses combination above.
-                </p>
-              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Multiplier preview */}
-        <div
-          style={{
+          {subMode === "lives" && (
+            <div>
+              <StepLabel number="03" label="Lives configuration" />
+              <div style={{
+                background: "var(--bg-2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                padding: "14px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}>
+                <div className="rcs-param-row">
+                  <span className="rcs-param-row-label">Lives</span>
+                  <div className="rcs-param-btns">
+                    {([1, 2, 3] as LivesCount[]).map((l) => (
+                      <ParamButton key={l} active={lives === l} onClick={() => setLives(l)}>
+                        {l}
+                      </ParamButton>
+                    ))}
+                  </div>
+                </div>
+                <div className="rcs-param-row">
+                  <span className="rcs-param-row-label">Guesses / life</span>
+                  <div className="rcs-param-btns">
+                    {([3, 4, 5] as GuessesPerLife[]).map((g) => {
+                      const key = `${lives}-${g}`;
+                      const valid = key in LIVES_MULTIPLIERS;
+                      return valid ? (
+                        <ParamButton key={g} active={guessesPerLife === g} onClick={() => setGuessesPerLife(g)}>
+                          {g}
+                        </ParamButton>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+                {!livesConfigValid && (
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)", margin: 0 }}>
+                    Select a valid lives / guesses combination above.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Multiplier preview — always shown on mobile, sidebar on desktop */}
+          <div style={{
             background: "var(--bg-2)",
             border: "1px solid var(--border)",
             borderRadius: "var(--radius-md)",
-            padding: "16px",
-          }}
-        >
-          <p
-            style={{
+            padding: 16,
+          }}>
+            <p style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
+              fontSize: 10,
               color: "var(--text-muted)",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               margin: "0 0 12px",
-            }}
-          >
-            Multiplier preview
-          </p>
-          <MultRow label="Difficulty" value={`${diffMult.toFixed(2)}×`} />
-          <MultRow
-            label={subMode === "timed" ? `Time limit (${timeLimit}s)` : `Lives (${lives}L · ${guessesPerLife}G)`}
-            value={`${modeMult.toFixed(2)}×`}
-          />
-          <MultRow label="Streak (est. ×5 rounds)" value={`${streakMult.toFixed(2)}×`} />
-          <div
-            style={{
-              borderTop: "1px solid var(--border)",
-              marginTop: "10px",
-              paddingTop: "10px",
-            }}
-          >
-            <MultRow label="Combined" value={`${combined.toFixed(2)}×`} highlight />
+            }}>
+              Multiplier preview
+            </p>
+            <MultRow label="Difficulty" value={`${diffMult.toFixed(2)}×`} />
+            <MultRow
+              label={subMode === "timed" ? `Time limit (${timeLimit}s)` : `Lives (${lives}L · ${guessesPerLife}G)`}
+              value={`${modeMult.toFixed(2)}×`}
+            />
+            <MultRow label="Streak (est. ×5 rounds)" value={`${streakMult.toFixed(2)}×`} />
+            <div style={{ borderTop: "1px solid var(--border)", marginTop: 10, paddingTop: 10 }}>
+              <MultRow label="Combined" value={`${combined.toFixed(2)}×`} highlight />
+            </div>
           </div>
+
+          {/* Start CTA */}
+          <button
+            onClick={() => onStart(config)}
+            disabled={isLoading || !livesConfigValid}
+            style={{
+              width: "100%",
+              background: isLoading ? "var(--bg-3)" : "var(--accent)",
+              border: "none",
+              borderRadius: "var(--radius-md)",
+              color: isLoading ? "var(--text-muted)" : "#fff",
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              fontWeight: 600,
+              padding: 14,
+              cursor: isLoading ? "not-allowed" : "pointer",
+              transition: "opacity 160ms var(--ease), transform 120ms var(--ease)",
+              letterSpacing: "0.01em",
+              marginTop: "auto",
+              // Ensure it's always reachable on mobile without getting cut off
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.opacity = "0.88"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            onMouseDown={(e) => { if (!isLoading) e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+          >
+            {isLoading ? "Starting run…" : "Start run →"}
+          </button>
         </div>
 
-        {/* Start CTA — primary: opacity fade, scale(0.98) press */}
-        <button
-          onClick={handleStart}
-          disabled={isLoading || (subMode === "lives" && !LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`])}
-          style={{
-            width: "100%",
-            background: isLoading ? "var(--bg-3)" : "var(--accent)",
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            color: isLoading ? "var(--text-muted)" : "#fff",
-            fontFamily: "var(--font-sans)",
-            fontSize: "14px",
-            fontWeight: 600,
-            padding: "14px",
-            cursor: isLoading ? "not-allowed" : "pointer",
-            transition: "opacity 160ms var(--ease), transform 120ms var(--ease)",
-            letterSpacing: "0.01em",
-            marginTop: "auto",
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoading) e.currentTarget.style.opacity = "0.88";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = "1";
-          }}
-          onMouseDown={(e) => {
-            if (!isLoading) e.currentTarget.style.transform = "scale(0.98)";
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-          }}
-        >
-          {isLoading ? "Starting run…" : "Start run →"}
-        </button>
+        {/* ── Scoring sidebar — desktop only ── */}
+        <ScoringSidebar />
       </div>
-
-      {/* ── Scoring sidebar ── */}
-      <ScoringSidebar />
-    </div>
+    </>
   );
 }

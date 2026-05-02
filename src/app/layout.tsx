@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Mono — Dialect",
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body>
         <SessionProvider>{children}</SessionProvider>
+        <Analytics />
       </body>
     </html>
   );

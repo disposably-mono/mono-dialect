@@ -16,64 +16,217 @@ interface Props {
   showToast: (msg: string, duration?: number) => void;
 }
 
-// ── Tile styles ───────────────────────────────────────────────────────────────
+// ── Hex geometry helpers ──────────────────────────────────────────────────────
 
-function getTileBase(tileSize: number, tileFontSize: number): React.CSSProperties {
+function getHexPath(w: number, h: number): string {
+  const cx = w / 2;
+  const cy = h / 2;
+  const rx = w / 2;
+  const ry = h / 2;
+  // Flat-top hexagon: 6 points
+  const pts = [
+    [cx + rx * Math.cos(Math.PI / 6 * 0), cy + ry * Math.sin(Math.PI / 6 * 0)],
+    [cx + rx * Math.cos(Math.PI / 6 * 2), cy + ry * Math.sin(Math.PI / 6 * 2)],
+    [cx + rx * Math.cos(Math.PI / 6 * 4), cy + ry * Math.sin(Math.PI / 6 * 4)],
+    [cx + rx * Math.cos(Math.PI / 6 * 6), cy + ry * Math.sin(Math.PI / 6 * 6)],
+    [cx + rx * Math.cos(Math.PI / 6 * 8), cy + ry * Math.sin(Math.PI / 6 * 8)],
+    [cx + rx * Math.cos(Math.PI / 6 * 10), cy + ry * Math.sin(Math.PI / 6 * 10)],
+  ];
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ") + " Z";
+}
+
+// ── Hex tile colors ───────────────────────────────────────────────────────────
+
+function getHexColors(feedback: Feedback | null, filled: boolean, isCursor: boolean) {
+  if (feedback === "correct") return {
+    fill: "color-mix(in srgb, var(--fern-dark, #3B6D11) 30%, var(--bg-2))",
+    stroke: "var(--fern, #588157)",
+    strokeWidth: 1.5,
+    color: "var(--beige, #EAF0CE)",
+  };
+  if (feedback === "present") return {
+    fill: "color-mix(in srgb, var(--lavender, #E5D4ED) 12%, var(--bg-2))",
+    stroke: "var(--lavender-grey, #8D99AE)",
+    strokeWidth: 1.5,
+    color: "var(--lavender, #E5D4ED)",
+  };
+  if (feedback === "absent") return {
+    fill: "var(--bg-2)",
+    stroke: "var(--border)",
+    strokeWidth: 1,
+    color: "var(--text-muted)",
+    opacity: 0.45,
+  };
+  if (isCursor) return {
+    fill: "var(--bg-2)",
+    stroke: "var(--lavender-grey, #8D99AE)",
+    strokeWidth: 1.5,
+    color: "var(--text-primary)",
+  };
+  if (filled) return {
+    fill: "var(--bg-2)",
+    stroke: "var(--border-hover)",
+    strokeWidth: 1.5,
+    color: "var(--text-primary)",
+  };
   return {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "var(--font-mono)",
-    fontWeight: 500,
-    textTransform: "uppercase",
-    userSelect: "none",
-    borderRadius: "var(--radius-md, 12px)",
-    position: "relative",
-    width: tileSize,
-    height: tileSize + 4,
-    fontSize: tileFontSize,
+    fill: "var(--bg-2)",
+    stroke: "var(--border)",
+    strokeWidth: 1,
+    color: "var(--text-muted)",
   };
 }
 
-function getTileColors(
-  feedback: Feedback | null,
-  filled: boolean,
-  isCursor: boolean
-): React.CSSProperties {
-  if (feedback === "correct") return {
-    background: "color-mix(in srgb, var(--fern-dark, #3B6D11) 18%, var(--bg-2))",
-    border: "1px solid color-mix(in srgb, var(--fern, #588157) 60%, transparent)",
-    color: "var(--beige, #EAF0CE)",
-    boxShadow: "inset 3px 0 0 var(--fern, #588157)",
-  };
-  if (feedback === "present") return {
-    background: "color-mix(in srgb, var(--lavender, #E5D4ED) 10%, var(--bg-2))",
-    border: "1px solid color-mix(in srgb, var(--lavender-grey, #8D99AE) 70%, transparent)",
-    color: "var(--lavender, #E5D4ED)",
-    boxShadow: "inset 3px 0 0 var(--lavender-grey, #8D99AE)",
-  };
-  if (feedback === "absent") return {
-    background: "var(--bg-2)",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    opacity: 0.5,
-  };
-  if (isCursor) return {
-    background: "var(--bg-2)",
-    border: "1px solid var(--lavender-grey, #8D99AE)",
-    color: "var(--text-primary)",
-    // cursor pulse handled via animationName below
-  };
-  if (filled) return {
-    background: "var(--bg-2)",
-    border: "1px solid var(--border-hover)",
-    color: "var(--text-primary)",
-  };
-  return {
-    background: "var(--bg-2)",
-    border: "1px solid var(--border)",
-    color: "var(--text-primary)",
-  };
+// ── Hex tile component ────────────────────────────────────────────────────────
+
+function HexTile({
+  letter,
+  feedback,
+  filled,
+  isCursor,
+  isHintPos,
+  hintLetter,
+  bouncing,
+  shaking,
+  colIndex,
+  size,
+}: {
+  letter: string;
+  feedback: Feedback | null;
+  filled: boolean;
+  isCursor: boolean;
+  isHintPos: boolean;
+  hintLetter: string | null;
+  bouncing: boolean;
+  shaking: boolean;
+  colIndex: number;
+  size: number;
+}) {
+  const w = size;
+  const h = size * 1.1;
+  const hexPath = getHexPath(w, h);
+  const colors = getHexColors(feedback, filled, isCursor);
+  const fontSize = size >= 46 ? 17 : size >= 40 ? 15 : 13;
+
+  let animName: string | undefined;
+  let animDuration: string | undefined;
+  let animDelay: string | undefined;
+  let animFill = "both";
+
+  if (bouncing) {
+    animName = "tileBounce";
+    animDuration = "600ms";
+    animDelay = `${colIndex * 60}ms`;
+  } else if (feedback) {
+    animName = "tileReveal";
+    animDuration = "480ms";
+    animDelay = `${colIndex * 70}ms`;
+  } else if (filled) {
+    animName = "tilePop";
+    animDuration = "100ms";
+    animDelay = undefined;
+  } else if (isCursor) {
+    animName = "hexCursorPulse";
+    animDuration = "2s";
+    animDelay = undefined;
+    animFill = "both";
+  }
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: w,
+        height: h,
+        animationName: shaking ? "tileShake" : animName,
+        animationDuration: shaking ? "400ms" : animDuration,
+        animationTimingFunction: shaking
+          ? "var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1))"
+          : feedback
+          ? "var(--ease-in-out-strong, cubic-bezier(0.77,0,0.175,1))"
+          : "var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1))",
+        animationDelay: shaking ? undefined : animDelay,
+        animationFillMode: animFill,
+        animationIterationCount: isCursor && !feedback ? "infinite" : undefined,
+      }}
+    >
+      <svg
+        width={w}
+        height={h}
+        viewBox={`0 0 ${w} ${h}`}
+        style={{ display: "block", overflow: "visible" }}
+      >
+        <path
+          d={hexPath}
+          fill={colors.fill}
+          stroke={colors.stroke}
+          strokeWidth={colors.strokeWidth}
+          style={{
+            transition: "fill 300ms var(--ease), stroke 300ms var(--ease)",
+            filter: feedback === "correct"
+              ? "drop-shadow(0 0 6px color-mix(in srgb, var(--fern, #588157) 40%, transparent))"
+              : isCursor
+              ? "drop-shadow(0 0 4px color-mix(in srgb, var(--lavender-grey, #8D99AE) 30%, transparent))"
+              : "none",
+          }}
+        />
+        {/* Hint outline ring */}
+        {isHintPos && (
+          <path
+            d={getHexPath(w - 3, h - 3)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={1}
+            strokeDasharray="3 2"
+            transform={`translate(1.5, 1.5)`}
+            style={{ opacity: 0.7 }}
+          />
+        )}
+      </svg>
+
+      {/* Letter */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-mono)",
+          fontWeight: 500,
+          fontSize,
+          textTransform: "uppercase",
+          color: colors.color,
+          userSelect: "none",
+          transition: "color 300ms var(--ease)",
+          opacity: (colors as { opacity?: number }).opacity ?? 1,
+          paddingBottom: 1,
+        }}
+      >
+        {letter || (isHintPos ? hintLetter : "")}
+      </div>
+
+      {/* Hint label */}
+      {isHintPos && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 6,
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 6,
+            color: "var(--accent)",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            pointerEvents: "none",
+          }}
+        >
+          hint
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Key styles ────────────────────────────────────────────────────────────────
@@ -173,16 +326,18 @@ export default function RunGameScreen({
   const hintLetter   = hint?.letter   ?? null;
   const timerKey     = `timer-${roundsWon}-${wordLength}`;
 
-  const tileSize     = wordLength >= 7 ? 42 : wordLength >= 6 ? 44 : 48;
-  const tileFontSize = wordLength >= 7 ? 15 : wordLength >= 6 ? 16 : 18;
-  const tileGap      = wordLength >= 7 ? 4  : 5;
+  // Hex tile sizing — slightly smaller to accommodate the hex shape's visual weight
+  const hexSize = wordLength >= 7 ? 42 : wordLength >= 6 ? 46 : 50;
+  // Horizontal overlap for hex grid — flat-top hexagons sit side by side with slight gap
+  const hexColGap = 4;
+  const hexRowGap = 3;
 
   return (
     <>
       <style>{`
-        @keyframes cursorPulse {
-          0%, 100% { border-color: var(--lavender-grey, #8D99AE); }
-          50%       { border-color: color-mix(in srgb, var(--lavender-grey, #8D99AE) 25%, transparent); }
+        @keyframes hexCursorPulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.55; }
         }
         @keyframes tileReveal {
           0%   { transform: scaleY(1); }
@@ -192,7 +347,7 @@ export default function RunGameScreen({
         }
         @keyframes tilePop {
           0%   { transform: scale(1); }
-          55%  { transform: scale(1.08); }
+          55%  { transform: scale(1.12); }
           100% { transform: scale(1); }
         }
         @keyframes tileBounce {
@@ -210,7 +365,6 @@ export default function RunGameScreen({
           80%     { transform: translateX(3px); }
         }
 
-        /* ── Layout ── */
         .rgs-root {
           display: flex;
           flex-direction: column;
@@ -219,7 +373,6 @@ export default function RunGameScreen({
           overflow: hidden;
         }
 
-        /* Mobile HUD bar */
         .rgs-hud-top {
           display: none;
           gap: 8px;
@@ -230,7 +383,6 @@ export default function RunGameScreen({
           flex-wrap: wrap;
         }
 
-        /* Desktop: side-by-side */
         .rgs-body {
           display: grid;
           grid-template-columns: 1fr 260px;
@@ -239,7 +391,6 @@ export default function RunGameScreen({
           overflow: hidden;
         }
 
-        /* Board column */
         .rgs-board {
           display: flex;
           flex-direction: column;
@@ -250,14 +401,12 @@ export default function RunGameScreen({
           position: relative;
         }
 
-        /* Keyboard directly under grid — no marginTop: auto */
         .rgs-keyboard {
           width: 100%;
           max-width: 340px;
           margin-top: 16px;
         }
 
-        /* Desktop sidebar */
         .rgs-sidebar {
           padding: 16px;
           display: flex;
@@ -266,17 +415,10 @@ export default function RunGameScreen({
           overflow-y: auto;
         }
 
-        /* ── Mobile overrides ── */
         @media (max-width: 640px) {
-          .rgs-hud-top {
-            display: flex;
-          }
-          .rgs-body {
-            grid-template-columns: 1fr;
-          }
-          .rgs-sidebar {
-            display: none;
-          }
+          .rgs-hud-top { display: flex; }
+          .rgs-body { grid-template-columns: 1fr; }
+          .rgs-sidebar { display: none; }
           .rgs-board {
             border-right: none;
             padding: 10px 12px 8px;
@@ -287,7 +429,6 @@ export default function RunGameScreen({
           }
         }
 
-        /* Stat chip used in mobile HUD */
         .hud-chip {
           display: flex;
           align-items: center;
@@ -310,13 +451,17 @@ export default function RunGameScreen({
           font-weight: 500;
           color: var(--text-primary);
         }
+
+        /* Hex grid row shake — applied at row level */
+        .hex-row-shake {
+          animation: tileShake 400ms var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1)) both;
+        }
       `}</style>
 
       <div className="rgs-root">
 
         {/* ── Mobile top HUD ── */}
         <div className="rgs-hud-top">
-          {/* Timer or lives */}
           <div style={{ display: "flex", alignItems: "center" }}>
             {config.subMode === "timed" ? (
               <TimerHUD
@@ -391,103 +536,52 @@ export default function RunGameScreen({
               </div>
             )}
 
-            {/* Tile grid */}
+            {/* Hex tile grid */}
             <div style={{
               display: "flex",
               flexDirection: "column",
-              gap: tileGap,
+              gap: hexRowGap,
               marginTop: 8,
+              alignItems: "center",
             }}>
               {Array.from({ length: guessesAllowed }).map((_, row) => (
                 <div
                   key={row}
+                  className={shakeRow === row ? "hex-row-shake" : undefined}
                   style={{
                     display: "flex",
-                    gap: tileGap,
-                    animationName: shakeRow === row ? "tileShake" : undefined,
-                    animationDuration: shakeRow === row ? "400ms" : undefined,
-                    animationTimingFunction: shakeRow === row
-                      ? "var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1))"
-                      : undefined,
-                    animationFillMode: "both",
+                    gap: hexColGap,
+                    alignItems: "center",
                   }}
                 >
                   {Array.from({ length: wordLength }).map((_, col) => {
-                    const letter     = grid[row]?.[col] ?? "";
-                    const feedback   = revealed[row]?.[col] ?? null;
-                    const isCursor   = row === currentRow && col === currentCol && !feedback;
-                    const filled     = !!letter && !feedback;
-                    const isHintPos  = feedback === null && hintPosition === col && row === currentRow;
-
-                    // Determine animation — all longhand, never mix with shorthand
-                    let animName: string | undefined;
-                    let animDuration: string | undefined;
-                    let animTiming: string | undefined;
-                    let animDelay: string | undefined;
-                    let animFill: string | undefined;
-
-                    if (bounceRow === row) {
-                      animName     = "tileBounce";
-                      animDuration = "600ms";
-                      animTiming   = "var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1))";
-                      animDelay    = `${col * 60}ms`;
-                      animFill     = "both";
-                    } else if (feedback) {
-                      animName     = "tileReveal";
-                      animDuration = "480ms";
-                      animTiming   = "var(--ease-in-out-strong, cubic-bezier(0.77,0,0.175,1))";
-                      animDelay    = `${col * 70}ms`;
-                      animFill     = "both";
-                    } else if (filled) {
-                      animName     = "tilePop";
-                      animDuration = "100ms";
-                      animTiming   = "var(--ease-out-strong, cubic-bezier(0.23,1,0.32,1))";
-                      animDelay    = undefined;
-                      animFill     = "both";
-                    } else if (isCursor) {
-                      animName     = "cursorPulse";
-                      animDuration = "2s";
-                      animTiming   = "var(--ease)";
-                      animDelay    = undefined;
-                      animFill     = "both";
-                    }
+                    const letter   = grid[row]?.[col] ?? "";
+                    const feedback = revealed[row]?.[col] ?? null;
+                    const isCursor = row === currentRow && col === currentCol && !feedback;
+                    const filled   = !!letter && !feedback;
+                    const isHintPos = feedback === null && hintPosition === col && row === currentRow;
 
                     return (
-                      <div
+                      <HexTile
                         key={col}
-                        style={{
-                          ...getTileBase(tileSize, tileFontSize),
-                          ...getTileColors(feedback, filled, isCursor),
-                          animationName:             animName,
-                          animationDuration:         animDuration,
-                          animationTimingFunction:   animTiming,
-                          animationDelay:            animDelay,
-                          animationFillMode:         animFill,
-                          animationIterationCount:   isCursor ? "infinite" : undefined,
-                          outline: isHintPos ? "1.5px dashed var(--accent)" : undefined,
-                        }}
-                      >
-                        {letter || (isHintPos ? hintLetter : "")}
-                        {isHintPos && (
-                          <span style={{
-                            position: "absolute",
-                            bottom: 2,
-                            right: 3,
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 7,
-                            color: "var(--accent)",
-                          }}>
-                            hint
-                          </span>
-                        )}
-                      </div>
+                        letter={letter}
+                        feedback={feedback}
+                        filled={filled}
+                        isCursor={isCursor}
+                        isHintPos={isHintPos}
+                        hintLetter={hintLetter}
+                        bouncing={bounceRow === row}
+                        shaking={false} // shake handled at row level
+                        colIndex={col}
+                        size={hexSize}
+                      />
                     );
                   })}
                 </div>
               ))}
             </div>
 
-            {/* Keyboard directly under grid */}
+            {/* Keyboard */}
             <div className="rgs-keyboard">
               {KB_ROWS.map((row, ri) => (
                 <div key={ri} style={{
@@ -529,7 +623,7 @@ export default function RunGameScreen({
             </div>
           </div>
 
-          {/* Desktop sidebar */}
+          {/* Desktop sidebar — unchanged */}
           <div className="rgs-sidebar">
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <span style={badgeStyle("green")}>{config.difficulty}</span>
