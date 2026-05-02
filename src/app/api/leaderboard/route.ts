@@ -2,7 +2,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export const revalidate = 60; // ISR — revalidate every 60s
+export const revalidate = 60;
+
+type UserRow = {
+  id: string;
+  username: string | null;
+  image: string | null;
+  rogueStats: {
+    highScore: number;
+    totalRuns: number;
+    totalRounds: number;
+    totalScore: number;
+  } | null;
+};
 
 export async function GET() {
   try {
@@ -31,8 +43,8 @@ export async function GET() {
     });
 
     const entries = users
-      .filter((u) => u.rogueStats && u.rogueStats.highScore > 0)
-      .map((u, i) => ({
+      .filter((u: UserRow) => u.rogueStats && u.rogueStats.highScore > 0)
+      .map((u: UserRow, i: number) => ({
         rank: i + 1,
         userId: u.id,
         username: u.username!,

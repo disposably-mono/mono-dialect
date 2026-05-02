@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+type UserRow = {
+  id: string;
+  username: string | null;
+  image: string | null;
+  rogueStats: {
+    highScore: number;
+    totalRuns: number;
+    totalRounds: number;
+    totalScore: number;
+  } | null;
+};
+
 export async function GET() {
   try {
     const session = await auth();
@@ -12,7 +24,6 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // Get all friendship IDs where the current user is either side
     const friendships = await db.friendship.findMany({
       where: {
         OR: [{ userAId: userId }, { userBId: userId }],
@@ -24,7 +35,6 @@ export async function GET() {
       f.userAId === userId ? f.userBId : f.userAId
     );
 
-    // Include self so the user sees their own rank in friends view
     const allIds = [userId, ...friendIds];
 
     const users = await db.user.findMany({
@@ -51,7 +61,7 @@ export async function GET() {
       },
     });
 
-    const entries = users.map((u, i) => ({
+    const entries = users.map((u: UserRow, i: number) => ({
       rank: i + 1,
       userId: u.id,
       username: u.username!,
