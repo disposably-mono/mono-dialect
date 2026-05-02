@@ -436,7 +436,7 @@ export default function RunEndScreen({
             >
               Sign in to save your score to the leaderboard and track your progress.
             </p>
-            <a
+            <link
               href="/api/auth/signin"
               style={{
                 display: "block",
@@ -452,7 +452,7 @@ export default function RunEndScreen({
               }}
             >
               Sign in with Google
-            </a>
+            </link>
           </div>
         )}
 
