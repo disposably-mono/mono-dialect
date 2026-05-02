@@ -1,18 +1,25 @@
 // src/components/nav/NavWrapper.tsx
 import { auth } from "@/lib/auth";
-import Link from "next/link";
+import { db } from "@/lib/db";
 import Nav from "./Nav";
 import { AuthControls } from "./AuthControls";
+import Link from "next/link";
 
 export default async function NavWrapper() {
   const session = await auth();
-  const user = session?.user as { id?: string; username?: string; name?: string } | undefined;
+  const userId = session?.user?.id ?? null;
 
-  const authSlot = user?.id ? (
-    <AuthControls
-      username={user.username ?? user.name}
-      userId={user.id}
-    />
+  let username: string | null = null;
+  if (userId) {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
+    username = user?.username ?? null;
+  }
+
+  const authSlot = session?.user ? (
+    <AuthControls username={username} userId={userId} />
   ) : (
     <Link
       href="/api/auth/signin"
@@ -24,13 +31,11 @@ export default async function NavWrapper() {
         padding: "5px 14px",
         borderRadius: 6,
         textDecoration: "none",
-        fontFamily: "var(--font-sans)",
-        transition: "opacity 160ms var(--ease)",
       }}
     >
       Sign in
     </Link>
   );
 
-  return <Nav authSlot={authSlot} />;
+  return <Nav username={username} authSlot={authSlot} />;
 }

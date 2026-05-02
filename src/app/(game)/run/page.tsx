@@ -5,11 +5,15 @@ import NavWrapper from "@/components/nav/NavWrapper";
 import RunShell from "./RunShell";
 
 export default async function RunPage() {
-  const session = await auth();
-  const userId  = session?.user?.id ?? null;
+  const session  = await auth();
+  const userId   = session?.user?.id ?? null;
+  const username =
+    (session?.user as { username?: string } | undefined)?.username ??
+    session?.user?.name ??
+    null;
 
-  let highScore  = 0;
-  let totalRuns  = 0;
+  let highScore   = 0;
+  let totalRuns   = 0;
   let totalRounds = 0;
 
   if (userId) {
@@ -21,10 +25,12 @@ export default async function RunPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
+      {/* ── Shared nav ── */}
       <NavWrapper />
+
       <RunShell
         userId={userId}
-        username={session?.user?.name ?? null}
+        username={username}
         previousHighScore={highScore}
         totalRuns={totalRuns}
         totalRounds={totalRounds}

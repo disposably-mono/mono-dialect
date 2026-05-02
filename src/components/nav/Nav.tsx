@@ -1,22 +1,33 @@
 "use client";
-// src/components/nav/Nav.tsx
 
+// src/components/nav/Nav.tsx
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-interface NavProps {
-  authSlot: React.ReactNode;
-}
 
 const TABS = [
   { label: "Daily", href: "/" },
   { label: "Roguelike", href: "/run" },
   { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Profile", href: "/profile" },
-];
+  { label: "Profile", href: null }, // dynamic — needs username
+] as const;
 
-export default function Nav({ authSlot }: NavProps) {
+interface NavProps {
+  username?: string | null;
+  authSlot?: React.ReactNode;
+}
+
+export default function Nav({ username, authSlot }: NavProps) {
   const pathname = usePathname();
+
+  function isActive(href: string | null): boolean {
+    if (!href) return false;
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  }
+
+  function getProfileHref(): string {
+    return username ? `/profile/${username}` : "/api/auth/signin";
+  }
 
   return (
     <nav
@@ -28,29 +39,26 @@ export default function Nav({ authSlot }: NavProps) {
         height: 52,
         borderBottom: "0.5px solid var(--border)",
         background: "var(--bg)",
-        position: "relative",
+        position: "sticky",
+        top: 0,
         zIndex: 10,
-        flexShrink: 0,
       }}
     >
       {/* Logo */}
       <Link
         href="/"
         style={{
-          fontFamily: "var(--font-serif)",
+          fontFamily: "var(--font-serif, 'DM Serif Display', serif)",
           fontSize: 17,
           color: "var(--text-primary)",
           letterSpacing: "-0.02em",
           textDecoration: "none",
-          flexShrink: 0,
         }}
       >
-        mono
-        <span style={{ color: "var(--accent)" }}>—</span>
-        dialect
+        mono<span style={{ color: "var(--accent)" }}>—</span>dialect
       </Link>
 
-      {/* Tab pill group */}
+      {/* Tabs */}
       <div
         style={{
           display: "flex",
@@ -61,43 +69,26 @@ export default function Nav({ authSlot }: NavProps) {
         }}
       >
         {TABS.map((tab) => {
-          const isActive = pathname === tab.href;
-          const isDisabled =
-            tab.href === "/leaderboard" || tab.href === "/profile";
+          const href = tab.label === "Profile" ? getProfileHref() : tab.href!;
+          const active = tab.label === "Profile"
+            ? pathname.startsWith("/profile")
+            : isActive(tab.href);
 
           return (
             <Link
-              key={tab.href}
-              href={isDisabled ? "#" : tab.href}
-              aria-disabled={isDisabled}
+              key={tab.label}
+              href={href}
               style={{
-                fontFamily: "var(--font-sans)",
+                fontFamily: "var(--font-sans, 'Outfit', sans-serif)",
                 fontSize: 12,
                 fontWeight: 500,
-                color: isActive
-                  ? "var(--text-primary)"
-                  : isDisabled
-                  ? "var(--text-muted)"
-                  : "var(--text-muted)",
+                color: active ? "var(--text-primary)" : "var(--text-muted)",
                 padding: "5px 12px",
                 borderRadius: 5,
-                background: isActive ? "var(--bg-3)" : "transparent",
                 textDecoration: "none",
+                background: active ? "var(--bg-3)" : "none",
+                transition: "color 120ms, background 120ms",
                 whiteSpace: "nowrap",
-                transition: "color 120ms var(--ease), background 120ms var(--ease)",
-                pointerEvents: isDisabled ? "none" : "auto",
-                opacity: isDisabled ? 0.45 : 1,
-                cursor: isDisabled ? "default" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive && !isDisabled) {
-                  e.currentTarget.style.color = "var(--text-secondary, var(--text-muted))";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.color = "var(--text-muted)";
-                }
               }}
             >
               {tab.label}
@@ -106,8 +97,8 @@ export default function Nav({ authSlot }: NavProps) {
         })}
       </div>
 
-      {/* Auth slot */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      {/* Right slot */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {authSlot}
       </div>
     </nav>

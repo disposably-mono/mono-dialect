@@ -16,7 +16,9 @@ export type BoardStateData = {
 
 export default async function Home() {
   const session = await auth();
-  const user = session?.user as { id?: string; username?: string; name?: string } | undefined;
+  const user = session?.user as
+    | { id?: string; username?: string; name?: string }
+    | undefined;
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -29,10 +31,10 @@ export default async function Home() {
     if (row) {
       stats = {
         currentStreak: row.currentStreak,
-        longestStreak:  row.longestStreak,
-        gamesPlayed:    row.gamesPlayed,
-        gamesWon:       row.gamesWon,
-        guessDist:      row.guessDist as Record<string, number>,
+        longestStreak: row.longestStreak,
+        gamesPlayed:   row.gamesPlayed,
+        gamesWon:      row.gamesWon,
+        guessDist:     row.guessDist as Record<string, number>,
       };
       hasPlayedToday = row.lastPlayedDate === today;
       if (row.boardState && row.lastPlayedDate === today) {
@@ -41,6 +43,7 @@ export default async function Home() {
     }
   }
 
+  const username = user?.username ?? user?.name ?? null;
   return (
     <div
       style={{
@@ -51,10 +54,10 @@ export default async function Home() {
         color: "var(--text-primary)",
       }}
     >
-      {/* Shared nav — handles active tab, auth slot, sign in/out */}
+      {/* ── Shared nav ── */}
       <NavWrapper />
 
-      {/* Game */}
+      {/* ── Game column ── */}
       <div
         style={{
           flex: 1,
@@ -70,7 +73,7 @@ export default async function Home() {
       >
         <DailyGame
           initialStats={stats}
-          username={user?.username}
+          username={username}
           userId={user?.id}
           hasPlayedToday={hasPlayedToday}
           today={today}

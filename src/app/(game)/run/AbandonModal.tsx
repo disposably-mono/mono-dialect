@@ -95,6 +95,7 @@ export default function AbandonModal({ isOpen, onConfirm, onCancel }: Props) {
         </p>
 
         <div style={{ display: "flex", gap: 8 }}>
+          {/* Secondary: border-color shift on hover */}
           <button
             onClick={onCancel}
             autoFocus
@@ -107,15 +108,18 @@ export default function AbandonModal({ isOpen, onConfirm, onCancel }: Props) {
               fontFamily: "var(--font-sans)",
               fontSize: 13,
               fontWeight: 500,
-              padding: "11px",
+              padding: "14px",
               cursor: "pointer",
-              transition: "opacity 120ms var(--ease)",
+              transition: "border-color 160ms var(--ease), transform 120ms var(--ease)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           >
             Keep playing
           </button>
+          {/* Primary (destructive): opacity fade on hover */}
           <button
             onClick={onConfirm}
             style={{
@@ -127,12 +131,14 @@ export default function AbandonModal({ isOpen, onConfirm, onCancel }: Props) {
               fontFamily: "var(--font-sans)",
               fontSize: 13,
               fontWeight: 600,
-              padding: "11px",
+              padding: "14px",
               cursor: "pointer",
-              transition: "opacity 120ms var(--ease)",
+              transition: "opacity 160ms var(--ease), transform 120ms var(--ease)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           >
             Abandon run
           </button>

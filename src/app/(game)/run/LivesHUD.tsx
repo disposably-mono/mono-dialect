@@ -42,10 +42,11 @@ export default function LivesHUD({ livesRemaining, livesTotal }: Props) {
           <Heart key={i} filled={i < livesRemaining} />
         ))}
       </div>
+      {/* Unified with sideLabel: 10px, muted, mono, uppercase */}
       <span
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: 9,
+          fontSize: 10,
           color: "var(--text-muted)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",

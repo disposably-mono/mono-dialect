@@ -230,7 +230,7 @@ function MultRow({
   );
 }
 
-// ── Scoring reference sidebar ─────────────────────────────────────────────────
+// ── Scoring reference sidebar — width unified to 280px ────────────────────────
 
 function ScoringSidebar() {
   const rows = [
@@ -249,8 +249,8 @@ function ScoringSidebar() {
         display: "flex",
         flexDirection: "column",
         gap: "20px",
-        minWidth: "240px",
-        maxWidth: "260px",
+        width: "280px",
+        flexShrink: 0,
       }}
     >
       <h2
@@ -595,7 +595,6 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
               color: "var(--text-muted)",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              marginBottom: "12px",
               margin: "0 0 12px",
             }}
           >
@@ -618,7 +617,7 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
           </div>
         </div>
 
-        {/* Start CTA */}
+        {/* Start CTA — primary: opacity fade, scale(0.98) press */}
         <button
           onClick={handleStart}
           disabled={isLoading || (subMode === "lives" && !LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`])}
@@ -638,16 +637,16 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
             marginTop: "auto",
           }}
           onMouseEnter={(e) => {
-            if (!isLoading) (e.currentTarget as HTMLButtonElement).style.opacity = "0.88";
+            if (!isLoading) e.currentTarget.style.opacity = "0.88";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+            e.currentTarget.style.opacity = "1";
           }}
           onMouseDown={(e) => {
-            if (!isLoading) (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.98)";
+            if (!isLoading) e.currentTarget.style.transform = "scale(0.98)";
           }}
           onMouseUp={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+            e.currentTarget.style.transform = "scale(1)";
           }}
         >
           {isLoading ? "Starting run…" : "Start run →"}

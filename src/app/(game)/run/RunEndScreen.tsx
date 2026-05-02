@@ -61,6 +61,7 @@ export default function RunEndScreen({
   const newHighScore = isHighScore ? finalScore : previousHighScore;
 
   return (
+    // Sidebar unified to 280px
     <div
       style={{
         display: "grid",
@@ -278,7 +279,7 @@ export default function RunEndScreen({
           </div>
         </div>
 
-        {/* CTAs */}
+        {/* CTAs — primary: opacity, secondary: border-color shift, both: scale(0.98) press */}
         <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
           <button
             onClick={onPlayAgain}
@@ -291,7 +292,7 @@ export default function RunEndScreen({
               fontFamily: "var(--font-sans)",
               fontSize: 14,
               fontWeight: 600,
-              padding: "13px",
+              padding: "14px",
               cursor: "pointer",
               transition: "opacity 160ms var(--ease), transform 120ms var(--ease)",
             }}
@@ -313,12 +314,14 @@ export default function RunEndScreen({
               fontFamily: "var(--font-sans)",
               fontSize: 14,
               fontWeight: 500,
-              padding: "13px",
+              padding: "14px",
               cursor: "pointer",
-              transition: "border-color 160ms var(--ease)",
+              transition: "border-color 160ms var(--ease), transform 120ms var(--ease)",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           >
             Share result ↗
           </button>
@@ -347,7 +350,7 @@ export default function RunEndScreen({
           Your stats
         </h2>
 
-        {/* Stat grid */}
+        {/* Stat grid — unified to 16px padding */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
             {
@@ -377,7 +380,7 @@ export default function RunEndScreen({
                 background: "var(--bg-2)",
                 border: `1px solid ${s.highlight ? "var(--highlight, #C8A84B)" : "var(--border)"}`,
                 borderRadius: "var(--radius-md, 12px)",
-                padding: "12px",
+                padding: "16px",
                 textAlign: "center",
               }}
             >
@@ -433,7 +436,7 @@ export default function RunEndScreen({
             >
               Sign in to save your score to the leaderboard and track your progress.
             </p>
-            <a
+            <link
               href="/api/auth/signin"
               style={{
                 display: "block",
@@ -449,7 +452,7 @@ export default function RunEndScreen({
               }}
             >
               Sign in with Google
-            </a>
+            </link>
           </div>
         )}
 

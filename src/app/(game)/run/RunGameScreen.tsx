@@ -38,7 +38,7 @@ function getTileStyle(feedback: Feedback | null, filled: boolean, isCursor: bool
   return { ...base, background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-primary)" };
 }
 
-// ── Key style — all variants use border shorthand only ────────────────────────
+// ── Key style ────────────────────────────────────────────────────────────────
 
 function getKeyStyle(feedback: Feedback | undefined): React.CSSProperties {
   const base: React.CSSProperties = {
@@ -69,6 +69,7 @@ const KB_ROWS = [
   ["ENTER","Z","X","C","V","B","N","M","⌫"],
 ];
 
+// ── Shared section label style (canonical) ────────────────────────────────────
 const sideLabel: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: 10,
@@ -117,14 +118,15 @@ export default function RunGameScreen({
   const tileGap      = wordLength >= 7 ? 4 : 5;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", height: "100%", minHeight: 0, overflow: "hidden" }}>
+    // Sidebar unified to 280px
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", height: "100%", minHeight: 0, overflow: "hidden" }}>
 
       {/* ── Board ── */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 16px", borderRight: "1px solid var(--border)", overflow: "hidden", position: "relative" }}>
 
-        {/* Toast */}
+        {/* Toast — radius-sm to match system */}
         {toast && (
-          <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", background: "var(--text-primary)", color: "var(--graphite, #34312D)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 500, padding: "7px 16px", borderRadius: 20, whiteSpace: "nowrap", zIndex: 20, pointerEvents: "none" }}>
+          <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", background: "var(--text-primary)", color: "var(--graphite, #34312D)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 500, padding: "7px 16px", borderRadius: "var(--radius-sm, 6px)", whiteSpace: "nowrap", zIndex: 20, pointerEvents: "none" }}>
             {toast}
           </div>
         )}
@@ -279,7 +281,7 @@ export default function RunGameScreen({
           </p>
         </div>
 
-        {/* Abandon — now calls onAbandon prop, no window.confirm or navigation */}
+        {/* Abandon — secondary pattern: border-color shift */}
         <div style={{ marginTop: "auto" }}>
           <button
             onClick={onAbandon}
@@ -291,18 +293,20 @@ export default function RunGameScreen({
               color: "var(--text-muted)",
               fontFamily: "var(--font-sans)",
               fontSize: 12,
-              padding: "9px",
+              padding: "14px",
               cursor: "pointer",
-              transition: "border 160ms var(--ease), color 160ms var(--ease)",
+              transition: "border-color 160ms var(--ease), color 160ms var(--ease), transform 120ms var(--ease)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.border = "1px solid #E85D5D";
-              e.currentTarget.style.color  = "#E85D5D";
+              e.currentTarget.style.borderColor = "#E85D5D";
+              e.currentTarget.style.color = "#E85D5D";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.border = "1px solid var(--border)";
-              e.currentTarget.style.color  = "var(--text-muted)";
+              e.currentTarget.style.borderColor = "var(--border)";
+              e.currentTarget.style.color = "var(--text-muted)";
             }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           >
             Abandon run
           </button>
