@@ -5,7 +5,6 @@
 //   1. MIT 10k common English words (dwyl/english-words)
 //   2. Spell-checker SCOWL word list via freedict
 //   3. Validates each candidate against Free Dictionary API
-//      (same API the game uses — guarantees all words are lookupable)
 //
 // Output: public/words/en.json
 
@@ -16,22 +15,25 @@ import path from "path";
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 const OUT_PATH   = path.resolve("public/words/en.json");
-const BATCH_SIZE = 10;        // concurrent dictionary API calls
-const API_DELAY  = 120;       // ms between batches (be polite to the free API)
+const BATCH_SIZE = 25;   // increased from 10
+const API_DELAY  = 60;   // ms between batches, decreased from 120
 
-// How many words to validate per (length, tier) bucket.
-// Higher = richer word bank, slower script. Adjust freely.
+// Per-bucket targets — smaller for longer words since fewer exist cleanly
 const BUCKET_TARGETS = {
-  common: 600,   // top ~10k frequency words (Easy pool)
-  uncommon: 400, // words outside top 5k (Hard pool)
+  3:  600,
+  4:  600,
+  5:  600,
+  6:  600,
+  7:  400,
+  8:  300,
+  9:  200,
+  10: 150,
 };
 
 // ─── SOURCES ─────────────────────────────────────────────────────────────────
 
 const SOURCES = [
-  // dwyl 10k most common English words — plain newline-separated
   "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt",
-  // SCOWL medium — broader vocabulary for Hard pool candidates
   "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
 ];
 
@@ -58,9 +60,8 @@ async function validateWord(word) {
   return new Promise((resolve) => {
     const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
     https.get(url, (res) => {
-      // 200 = valid English word in dictionary
       resolve(res.statusCode === 200);
-      res.resume(); // drain
+      res.resume();
     }).on("error", () => resolve(false));
   });
 }
@@ -74,16 +75,13 @@ async function validateBatch(words) {
 
 async function main() {
   console.log("📥  Fetching word sources...");
-
   const [commonRaw, fullRaw] = await Promise.all(SOURCES.map(get));
 
-  // Source 1: google-10000 — these are frequency-ranked (index 0 = most common)
   const commonList = commonRaw
     .split("\n")
     .map((w) => w.trim().toLowerCase())
     .filter((w) => /^[a-z]+$/.test(w));
 
-  // Source 2: words_alpha — full dictionary, used for uncommon candidates
   const fullSet = new Set(
     fullRaw
       .split("\n")
@@ -91,33 +89,35 @@ async function main() {
       .filter((w) => /^[a-z]+$/.test(w))
   );
 
-  const commonSet = new Set(commonList.slice(0, 5000)); // top 5k = "common"
+  const commonSet = new Set(commonList.slice(0, 5000));
 
   console.log(`✅  Sources loaded: ${commonList.length} common, ${fullSet.size} full`);
 
-  // ── Build candidate pools by length ──────────────────────────────────────
+  // ── Build candidate pools ─────────────────────────────────────────────────
 
-  // Easy pool: words in top-10k list, lengths 3–6
-  const easyByLen = { 3: [], 4: [], 5: [], 6: [] };
+  // Easy: lengths 3–10 from common list
+  const easyByLen = {};
+  for (let l = 3; l <= 10; l++) easyByLen[l] = [];
   for (const w of commonList) {
     const l = w.length;
-    if (l >= 3 && l <= 6 && easyByLen[l]) easyByLen[l].push(w);
+    if (l >= 3 && l <= 10) easyByLen[l].push(w);
   }
 
-  // Hard pool: words NOT in top-5k, lengths 5–7
-  const hardByLen = { 5: [], 6: [], 7: [] };
+  // Hard: lengths 5–10, words NOT in top-5k
+  const hardByLen = {};
+  for (let l = 5; l <= 10; l++) hardByLen[l] = [];
   for (const w of fullSet) {
-    if (commonSet.has(w)) continue; // skip common words
+    if (commonSet.has(w)) continue;
     const l = w.length;
-    if (l >= 5 && l <= 7 && hardByLen[l]) hardByLen[l].push(w);
+    if (l >= 5 && l <= 10) hardByLen[l].push(w);
   }
 
-  // Shuffle so we don't always validate alphabetical runs
+  // Shuffle to avoid alphabetical bias
   const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
   for (const k of Object.keys(easyByLen)) shuffle(easyByLen[k]);
   for (const k of Object.keys(hardByLen)) shuffle(hardByLen[k]);
 
-  // ── Validate candidates via Free Dictionary API ───────────────────────────
+  // ── Validate ──────────────────────────────────────────────────────────────
 
   async function buildBucket(candidates, target, label) {
     const validated = [];
@@ -129,7 +129,9 @@ async function main() {
       const good  = await validateBatch(batch);
       validated.push(...good);
       i += BATCH_SIZE;
-      process.stdout.write(`\r  Validating ${label}: ${Math.min(validated.length, target)}/${target}`);
+      process.stdout.write(
+        `\r  Validating ${label}: ${Math.min(validated.length, target)}/${target}`
+      );
       await sleep(API_DELAY);
     }
 
@@ -137,35 +139,38 @@ async function main() {
     return validated.slice(0, target);
   }
 
-  console.log("\n🔍  Validating words (this takes a few minutes)...\n");
+  console.log("\n🔍  Validating words...\n");
 
   const output = {
     meta: {
       generated: new Date().toISOString(),
       sources: SOURCES,
-      description: "mono—dialect word bank. easy = common words (3-6 letters). hard = uncommon words (5-7 letters).",
+      description:
+        "mono—dialect word bank. easy = common words (3–10 letters). hard = uncommon words (5–10 letters).",
     },
     easy: {},
     hard: {},
   };
 
-  // Easy buckets
-  for (const [len, candidates] of Object.entries(easyByLen)) {
-    const target = BUCKET_TARGETS.common;
-    const words  = await buildBucket(candidates, target, `easy/${len}-letter`);
+  // Easy buckets 3–10
+  for (let len = 3; len <= 10; len++) {
+    const target    = BUCKET_TARGETS[len];
+    const candidates = easyByLen[len] ?? [];
+    const words     = await buildBucket(candidates, target, `easy/${len}-letter`);
     output.easy[len] = words;
     console.log(`  ✔ easy/${len}: ${words.length} words`);
   }
 
-  // Hard buckets
-  for (const [len, candidates] of Object.entries(hardByLen)) {
-    const target = BUCKET_TARGETS.uncommon;
-    const words  = await buildBucket(candidates, target, `hard/${len}-letter`);
+  // Hard buckets 5–10
+  for (let len = 5; len <= 10; len++) {
+    const target    = BUCKET_TARGETS[len];
+    const candidates = hardByLen[len] ?? [];
+    const words     = await buildBucket(candidates, target, `hard/${len}-letter`);
     output.hard[len] = words;
     console.log(`  ✔ hard/${len}: ${words.length} words`);
   }
 
-  // ── Write output ──────────────────────────────────────────────────────────
+  // ── Write ─────────────────────────────────────────────────────────────────
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(output, null, 2));

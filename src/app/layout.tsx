@@ -3,22 +3,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { Analytics } from "@vercel/analytics/next";
+import PageTransition from "@/components/PageTransition";
+import AmbientPlayer from "@/components/AmbientPlayer";
 
 export const metadata: Metadata = {
   title: "Mono — Dialect",
   description: "A word-guessing game with roguelike run mode, scoring, and leaderboards.",
   openGraph: {
     title: "Mono — Dialect",
-    description: "Daily challenge and roguelike word game.",
+    description: "Roguelike word game with configurable runs and leaderboards.",
     siteName: "Mono — Dialect",
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
@@ -28,7 +26,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <PageTransition>{children}</PageTransition>
+          <AmbientPlayer />
+        </SessionProvider>
         <Analytics />
       </body>
     </html>

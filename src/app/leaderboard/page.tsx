@@ -18,58 +18,59 @@ type UserRow = {
   } | null;
 };
 
-type FriendshipRow = {
-  userAId: string;
-  userBId: string;
-};
+type FriendshipRow = { userAId: string; userBId: string };
 
 export default async function LeaderboardPage() {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
-
-  const users = await db.user.findMany({
-    where: {
-      username: { not: null },
-      rogueStats: { isNot: null },
-    },
-    select: {
-      id: true,
-      username: true,
-      image: true,
-      rogueStats: {
-        select: {
-          highScore: true,
-          totalRuns: true,
-          totalRounds: true,
-          totalScore: true,
+  // Run auth + global leaderboard fetch in parallel
+  const [session, users] = await Promise.all([
+    auth(),
+    db.user.findMany({
+      where: {
+        username:   { not: null },
+        rogueStats: { isNot: null },
+      },
+      select: {
+        id: true,
+        username: true,
+        image: true,
+        rogueStats: {
+          select: {
+            highScore:   true,
+            totalRuns:   true,
+            totalRounds: true,
+            totalScore:  true,
+          },
         },
       },
-    },
-    orderBy: { rogueStats: { highScore: "desc" } },
-    take: 100,
-  });
+      orderBy: { rogueStats: { highScore: "desc" } },
+      take: 100,
+    }),
+  ]);
+
+  const userId = session?.user?.id ?? null;
 
   const globalEntries = users
     .filter((u: UserRow) => u.rogueStats && u.rogueStats.highScore > 0)
     .map((u: UserRow, i: number) => ({
-      rank: i + 1,
-      userId: u.id,
-      username: u.username!,
-      image: u.image,
-      isYou: u.id === userId,
-      highScore: u.rogueStats!.highScore,
-      totalRuns: u.rogueStats!.totalRuns,
+      rank:        i + 1,
+      userId:      u.id,
+      username:    u.username!,
+      image:       u.image,
+      isYou:       u.id === userId,
+      highScore:   u.rogueStats!.highScore,
+      totalRuns:   u.rogueStats!.totalRuns,
       totalRounds: u.rogueStats!.totalRounds,
-      totalScore: u.rogueStats!.totalScore,
+      totalScore:  u.rogueStats!.totalScore,
     }));
 
-  let pendingCount = 0;
+  // Auth-dependent data in parallel
+  let pendingCount  = 0;
   let friendEntries: typeof globalEntries = [];
 
   if (userId) {
     const [friendships, pending] = await Promise.all([
       db.friendship.findMany({
-        where: { OR: [{ userAId: userId }, { userBId: userId }] },
+        where:  { OR: [{ userAId: userId }, { userBId: userId }] },
         select: { userAId: true, userBId: true },
       }),
       db.friendRequest.count({
@@ -78,41 +79,32 @@ export default async function LeaderboardPage() {
     ]);
 
     pendingCount = pending;
-
     const friendIds = friendships.map((f: FriendshipRow) =>
       f.userAId === userId ? f.userBId : f.userAId
     );
 
-    const allIds = [userId, ...friendIds];
-
+    // Fetch friend stats in parallel with already-complete global data
     const friendUsers = await db.user.findMany({
-      where: { id: { in: allIds }, username: { not: null } },
+      where:   { id: { in: [userId, ...friendIds] }, username: { not: null } },
       select: {
-        id: true,
-        username: true,
-        image: true,
+        id: true, username: true, image: true,
         rogueStats: {
-          select: {
-            highScore: true,
-            totalRuns: true,
-            totalRounds: true,
-            totalScore: true,
-          },
+          select: { highScore: true, totalRuns: true, totalRounds: true, totalScore: true },
         },
       },
       orderBy: { rogueStats: { highScore: "desc" } },
     });
 
     friendEntries = friendUsers.map((u: UserRow, i: number) => ({
-      rank: i + 1,
-      userId: u.id,
-      username: u.username!,
-      image: u.image,
-      isYou: u.id === userId,
-      highScore: u.rogueStats?.highScore ?? 0,
-      totalRuns: u.rogueStats?.totalRuns ?? 0,
+      rank:        i + 1,
+      userId:      u.id,
+      username:    u.username!,
+      image:       u.image,
+      isYou:       u.id === userId,
+      highScore:   u.rogueStats?.highScore   ?? 0,
+      totalRuns:   u.rogueStats?.totalRuns   ?? 0,
       totalRounds: u.rogueStats?.totalRounds ?? 0,
-      totalScore: u.rogueStats?.totalScore ?? 0,
+      totalScore:  u.rogueStats?.totalScore  ?? 0,
     }));
   }
 

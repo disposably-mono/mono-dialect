@@ -1,7 +1,7 @@
 "use client";
 // src/app/(game)/run/TimerHUD.tsx
-
 import { useEffect, useRef, useState } from "react";
+import { useAudio } from "./useAudio";
 
 interface Props {
   seconds: number;
@@ -11,21 +11,21 @@ interface Props {
 
 export default function TimerHUD({ seconds, isActive, onExpired }: Props) {
   const [remaining, setRemaining] = useState(seconds);
-  const remainingRef = useRef(seconds);
-  const lastTickRef  = useRef<number | null>(null);
-  const expiredRef   = useRef(false);
+  const remainingRef  = useRef(seconds);
+  const lastTickRef   = useRef<number | null>(null);
+  const expiredRef    = useRef(false);
+  const lastSoundRef  = useRef<number>(-1);
+  const { tick }      = useAudio();
 
   // No reset effect needed — component is keyed per round and remounts fresh,
   // so useState(seconds) always initializes with the correct value.
 
   useEffect(() => {
     if (!isActive) {
-      // Pause: clear the last tick so we don't accumulate time while paused
       lastTickRef.current = null;
       return;
     }
 
-    // Resume: stamp now as the start of this active window
     lastTickRef.current = Date.now();
 
     const id = setInterval(() => {
@@ -38,6 +38,12 @@ export default function TimerHUD({ seconds, isActive, onExpired }: Props) {
       remainingRef.current = next;
       setRemaining(next);
 
+      // Tick sound on each second change, only in danger zone
+      if (next !== lastSoundRef.current && next <= 10 && next > 0) {
+        tick();
+        lastSoundRef.current = next;
+      }
+
       if (next <= 0 && !expiredRef.current) {
         expiredRef.current = true;
         clearInterval(id);
@@ -46,7 +52,7 @@ export default function TimerHUD({ seconds, isActive, onExpired }: Props) {
     }, 250);
 
     return () => clearInterval(id);
-  }, [isActive, onExpired]);
+  }, [isActive, onExpired, tick]);
 
   const pct           = remaining / seconds;
   const danger        = remaining <= 10;

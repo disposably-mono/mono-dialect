@@ -40,7 +40,7 @@ export default function RunEndScreen({
       `${finalRounds} rounds won`,
       `${finalScore.toLocaleString()} pts${isHighScore ? " 🏆 New high score!" : ""}`,
       ``,
-      `dialect.mono.dev`,
+      `mono-dialect.vercel.app`,
     ];
     return lines.join("\n");
   }

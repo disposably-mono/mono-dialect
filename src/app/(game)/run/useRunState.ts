@@ -11,6 +11,7 @@ import {
   SubmitResponse,
   EndResponse,
 } from "./types";
+import { useAudio } from "./useAudio";
 
 // ── Storage key ───────────────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ function makeInitialState(): RunState {
     roundsWon: 0,
     totalScore: 0,
     livesRemaining: null,
+    isBoss: false,
+    isChaos: false,
     lastWord: null,
     finalScore: 0,
     finalRounds: 0,
@@ -115,6 +118,8 @@ function reducer(state: RunState, action: Action): RunState {
         wordLength: res.wordLength,
         guessesAllowed: guesses,
         livesRemaining: config.subMode === "lives" ? (config.lives ?? 1) : null,
+        isBoss: res.isBoss,
+        isChaos: res.isChaos,
         ...newRoundGrid(res.wordLength, guesses),
       };
     }
@@ -183,6 +188,8 @@ function reducer(state: RunState, action: Action): RunState {
         token: res.nextToken!,
         wordLength: res.nextWordLength!,
         guessesAllowed: guesses,
+        isBoss: res.nextIsBoss ?? false,
+        isChaos: res.nextIsChaos ?? false,
         ...newRoundGrid(res.nextWordLength!, guesses),
         bounceRow: null,
         roundJustWon: false,
@@ -242,14 +249,12 @@ interface UseRunStateOptions {
 export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
   const key = storageKey(userId);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { tick, correct, wrong, roundWin, bossRound, runOver } = useAudio();
 
-  // Always start with config phase — identical on server and client
   const [state, dispatch] = useReducer(reducer, undefined, makeInitialState);
-
-  // mounted flag — gates localStorage rehydration and persistence
   const [mounted, setMounted] = useState(false);
 
-  // After mount: read localStorage and rehydrate if a valid in-progress run exists
+  // After mount: rehydrate from localStorage if a valid in-progress run exists
   useEffect(() => {
     try {
       const raw = localStorage.getItem(key);
@@ -262,18 +267,15 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
     } catch {
       // corrupt or missing — start fresh
     }
-    // Use queueMicrotask to avoid synchronous setState within effect body
     queueMicrotask(() => setMounted(true));
-    // Only run once on mount; key won't change within a session
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist to localStorage whenever state changes (client-side only)
+  // Persist to localStorage on state change (client-side only)
   useEffect(() => {
     if (!mounted) return;
     if (state.phase === "playing") {
       try {
-        // Strip transient UI fields before writing
         const {
           isSubmitting, shakeRow, revealingRow, bounceRow, toast,
           roundJustWon, lifeLost, roundScore,
@@ -309,10 +311,15 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
       if (!res.ok) throw new Error("Failed to start");
       const data: StartResponse = await res.json();
       dispatch({ type: "START_RUN", res: data, config });
+
+      // Play boss sting immediately if the very first round is a boss word
+      if (data.isBoss || data.isChaos) {
+        bossRound();
+      }
     } catch {
       showToast("Couldn't start run. Try again.");
     }
-  }, [showToast]);
+  }, [showToast, bossRound]);
 
   // ── Input ─────────────────────────────────────────────────────────────────
 
@@ -332,6 +339,7 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
     if (state.phase !== "playing" || state.isSubmitting) return;
     if (state.currentCol < state.wordLength) {
       dispatch({ type: "SHAKE_ROW" });
+      wrong(); // ← wrong guess / incomplete word
       showToast("Not enough letters");
       setTimeout(() => dispatch({ type: "CLEAR_SHAKE" }), 500);
       return;
@@ -355,12 +363,22 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
       }
 
       const data: SubmitResponse = await res.json();
+
+      // Play correct/wrong sound immediately on submit before reveal animation
+      if (data.won) {
+        correct(); // ← two-tone chime on correct guess
+      } else if (!data.runOver && !data.lifeLost) {
+        // Still guessing — wrong letter(s) but run continues
+        wrong(); // ← thud on wrong guess
+      }
+
       const revealDelay = state.wordLength * 80 + 200;
 
       setTimeout(() => {
         dispatch({ type: "REVEAL_DONE", feedback: data.feedback, res: data });
 
         if (data.runOver) {
+          runOver(); // ← descending minor on game over
           setTimeout(async () => {
             try {
               const endRes = await fetch("/api/run/end", {
@@ -396,11 +414,21 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
             Math.min(guessesTaken - 1, 5)
           ];
           showToast(`${msg} +${data.roundScore?.toLocaleString()} pts`);
-          setTimeout(() => dispatch({ type: "NEXT_ROUND", res: data }), 1400);
+
+          setTimeout(() => {
+            dispatch({ type: "NEXT_ROUND", res: data });
+            // Play boss sting if the next round is a boss/chaos word
+            if (data.nextIsBoss || data.nextIsChaos) {
+              bossRound(); // ← tense sawtooth sting
+            } else {
+              roundWin(); // ← C→E→G arpeggio on normal round win
+            }
+          }, 1400);
           return;
         }
 
         if (data.lifeLost) {
+          wrong(); // ← extra wrong sound on life lost
           showToast(`Life lost — ${data.livesRemaining} remaining`);
           setTimeout(() => dispatch({ type: "LIFE_LOST_NEXT", res: data }), 1400);
           return;
@@ -416,12 +444,13 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
       dispatch({ type: "SET_SUBMITTING", value: false });
       showToast("Something went wrong.");
     }
-  }, [state, previousHighScore, showToast]);
+  }, [state, previousHighScore, showToast, correct, wrong, roundWin, bossRound, runOver]);
 
   // ── Timer expiry ──────────────────────────────────────────────────────────
 
   const onTimerExpired = useCallback(async () => {
     if (state.phase !== "playing") return;
+    runOver(); // ← descending minor when timer hits zero
     try {
       const endRes = await fetch("/api/run/end", {
         method: "POST",
@@ -447,7 +476,7 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
         lastWord: "",
       });
     }
-  }, [state, previousHighScore]);
+  }, [state, previousHighScore, runOver]);
 
   // ── Physical keyboard ─────────────────────────────────────────────────────
 
@@ -467,6 +496,10 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
   const resetRun = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
+
+  // ── Expose tick for TimerHUD (already used directly via useAudio there) ───
+  // tick is used directly in TimerHUD via its own useAudio() call — no need
+  // to thread it through useRunState. Listed here for documentation only.
 
   return {
     state,

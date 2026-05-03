@@ -20,6 +20,16 @@ interface Props {
   isLoading: boolean;
 }
 
+// ── Valid lives combos (mirrors LIVES_MULT in api/run/start/route.ts) ─────────
+// "1-3": 2.5, "1-4": 2.0
+// "2-3": 1.8, "2-4": 1.5
+// "3-4": 1.25, "3-5": 1.1
+const VALID_LIVES_COMBOS = new Set(["1-3","1-4","2-3","2-4","3-4","3-5"]);
+
+function isValidCombo(lives: number, guesses: number) {
+  return VALID_LIVES_COMBOS.has(`${lives}-${guesses}`);
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StepLabel({ number, label }: { number: string; label: string }) {
@@ -123,14 +133,16 @@ function OptionCard({
   );
 }
 
-function ParamButton({ active, onClick, children }: {
+function ParamButton({ active, disabled, onClick, children }: {
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       style={{
         fontFamily: "var(--font-mono)",
         fontSize: 11,
@@ -138,11 +150,12 @@ function ParamButton({ active, onClick, children }: {
         borderRadius: "var(--radius-sm)",
         border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
         background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-2))" : "var(--bg-2)",
-        color: active ? "var(--accent)" : "var(--text-muted)",
-        cursor: "pointer",
+        color: active ? "var(--accent)" : disabled ? "var(--border)" : "var(--text-muted)",
+        cursor: disabled ? "not-allowed" : "pointer",
         transition: "all 120ms var(--ease)",
         whiteSpace: "nowrap",
         flex: 1,
+        opacity: disabled ? 0.4 : 1,
       }}
     >
       {children}
@@ -150,16 +163,24 @@ function ParamButton({ active, onClick, children }: {
   );
 }
 
-function MultRow({ label, value, highlight }: {
+function MultRow({ label, value, highlight, sub }: {
   label: string;
   value: string;
   highlight?: boolean;
+  sub?: string;
 }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-      <span style={{ fontSize: 12, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)" }}>
-        {label}
-      </span>
+      <div>
+        <span style={{ fontSize: 12, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)" }}>
+          {label}
+        </span>
+        {sub && (
+          <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginLeft: 6 }}>
+            {sub}
+          </span>
+        )}
+      </div>
       <span style={{
         fontFamily: "var(--font-mono)",
         fontSize: highlight ? 20 : 13,
@@ -173,15 +194,15 @@ function MultRow({ label, value, highlight }: {
   );
 }
 
-// ── Scoring reference sidebar ─────────────────────────────────────────────────
+// ── Scoring reference sidebar — matches api/run/submit/route.ts exactly ───────
 
 function ScoringSidebar() {
-  const rows = [
-    { label: "Base score", value: "100 × (guesses left + 1)" },
-    { label: "Length bonus", value: "(len − min) × 15" },
-    { label: "Difficulty", value: "Easy 1.00× / Hard 1.75×" },
-    { label: "Sub-mode", value: "0.50× – 2.50×" },
-    { label: "Streak", value: "1 + (rounds × 0.05)" },
+  // Progression table rows derived from getRoundSpec() in the API
+  const easyProgression = [
+    { stage: "3-letter", rounds: "Rounds 1–4", boss: "Round 5" },
+    { stage: "4-letter", rounds: "Rounds 6–9", boss: "Round 10" },
+    { stage: "5-letter", rounds: "Rounds 11–14", boss: "Round 15" },
+    { stage: "6–10-letter", rounds: "Continues…", boss: "Every 5th" },
   ];
 
   return (
@@ -196,19 +217,27 @@ function ScoringSidebar() {
         Scoring formula
       </h2>
 
+      {/* Formula table */}
       <div style={{
         background: "var(--bg-2)",
         border: "1px solid var(--border)",
         borderRadius: "var(--radius-md)",
         overflow: "hidden",
       }}>
-        {rows.map((r, i) => (
+        {[
+          { label: "Base score", value: "100 × (guesses left + 1)" },
+          { label: "Length bonus", value: "(len − min) × 20" },
+          { label: "Difficulty", value: "Easy 1.00× / Hard 1.75×" },
+          { label: "Sub-mode", value: "0.50× – 2.50×" },
+          { label: "Streak (exponential)", value: "1.12 ^ roundsWon" },
+          { label: "Boss / Chaos word", value: "extra 1.50×" },
+        ].map((r, i, arr) => (
           <div key={i} style={{
             display: "flex",
             justifyContent: "space-between",
             gap: 12,
             padding: "9px 12px",
-            borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+            borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none",
           }}>
             <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>{r.label}</span>
             <span style={{ fontSize: 10, color: "var(--accent)", fontFamily: "var(--font-mono)", textAlign: "right" }}>{r.value}</span>
@@ -216,6 +245,7 @@ function ScoringSidebar() {
         ))}
       </div>
 
+      {/* Progression */}
       <div>
         <p style={{
           fontFamily: "var(--font-mono)",
@@ -225,7 +255,7 @@ function ScoringSidebar() {
           textTransform: "uppercase",
           marginBottom: 8,
         }}>
-          Word length scaling
+          Word length progression
         </p>
         <div style={{
           background: "var(--bg-2)",
@@ -234,22 +264,33 @@ function ScoringSidebar() {
           overflow: "hidden",
         }}>
           {[
-            { label: "Easy 3→4→5→6", value: "every 2 wins" },
-            { label: "Hard 5→6→7", value: "every 2 wins" },
+            { mode: "Easy", desc: "3→10 letters, stage of 5 rounds (4 normal + 1 boss from hard pool). After round 40 → chaos." },
+            { mode: "Hard", desc: "5→10 letters, spending len rounds per length (5 at len-5, 6 at len-6…). After round 45 → chaos." },
           ].map((r, i) => (
             <div key={i} style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "9px 12px",
+              padding: "10px 12px",
               borderBottom: i === 0 ? "1px solid var(--border)" : "none",
             }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>{r.label}</span>
-              <span style={{ fontSize: 11, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-mono)" }}>{r.value}</span>
+              <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "var(--accent)",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: 3,
+              }}>
+                {r.mode}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)", lineHeight: 1.5 }}>
+                {r.desc}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Example callout — Hard/30s, round 10 (exponential streak) */}
       <div style={{
         background: "color-mix(in srgb, var(--accent) 6%, var(--bg-2))",
         border: "1px solid var(--border)",
@@ -257,13 +298,32 @@ function ScoringSidebar() {
         padding: 12,
       }}>
         <p style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 6, letterSpacing: "0.05em" }}>
-          EXAMPLE · Hard / 30s / 5-round streak
+          EXAMPLE · Hard / 30s / Round 10
         </p>
+        {/* base=400, length bonus=(6-5)×20=20, diff=1.75, subMode=2.0, streak=1.12^10≈3.11, boss=1.0 */}
         <p style={{ fontSize: 11, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)", lineHeight: 1.6, margin: 0 }}>
-          (400 + 15) × 1.75 × 2.00 × 1.25
+          (400 + 20) × 1.75 × 2.00 × 1.12¹⁰
         </p>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: 18, color: "var(--highlight, #C8A84B)", fontWeight: 500, margin: "4px 0 0" }}>
-          = 1,816 pts
+        <p style={{ fontSize: 11, color: "var(--text-sec, var(--text-muted))", fontFamily: "var(--font-sans)", lineHeight: 1.6, margin: "2px 0 4px" }}>
+          = 420 × 1.75 × 2.00 × 3.11
+        </p>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 18, color: "var(--highlight, #C8A84B)", fontWeight: 500, margin: 0 }}>
+          ≈ 4,561 pts
+        </p>
+      </div>
+
+      {/* Boss note */}
+      <div style={{
+        background: "color-mix(in srgb, var(--highlight, #C8A84B) 6%, var(--bg-2))",
+        border: "1px solid color-mix(in srgb, var(--highlight, #C8A84B) 25%, transparent)",
+        borderRadius: "var(--radius-md)",
+        padding: "10px 12px",
+      }}>
+        <p style={{ fontSize: 10, color: "var(--highlight, #C8A84B)", fontFamily: "var(--font-mono)", margin: "0 0 4px", letterSpacing: "0.05em" }}>
+          BOSS &amp; CHAOS WORDS
+        </p>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)", lineHeight: 1.5, margin: 0 }}>
+          Every 5th Easy round is a boss word (harder pool, +1.50×). After all lengths are exhausted, chaos mode begins — random lengths, mixed pools.
         </p>
       </div>
     </aside>
@@ -279,6 +339,14 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
   const [lives, setLives] = useState<LivesCount>(1);
   const [guessesPerLife, setGuessesPerLife] = useState<GuessesPerLife>(3);
 
+  // Auto-correct guessesPerLife when lives changes to avoid landing on an invalid combo
+  function handleSetLives(l: LivesCount) {
+    setLives(l);
+    // Find first valid guesses value for the new lives count
+    const validGuesses = ([3, 4, 5] as GuessesPerLife[]).find((g) => isValidCombo(l, g));
+    if (validGuesses) setGuessesPerLife(validGuesses);
+  }
+
   const config: RunConfig = {
     difficulty,
     subMode,
@@ -290,10 +358,13 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
     subMode === "timed"
       ? TIMED_MULTIPLIERS[timeLimit]
       : LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`] ?? 2.5;
-  const streakMult = 1.25;
-  const combined = getCombinedMultiplier(config, 5);
 
-  const livesConfigValid = subMode !== "lives" || !!LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`];
+  // Streak preview at round 5 — uses actual exponential formula (1.12^5 ≈ 1.76)
+  const streakPreviewRound = 5;
+  const streakMult = Math.pow(1.12, streakPreviewRound);
+  const combined = getCombinedMultiplier(config, streakPreviewRound);
+
+  const livesConfigValid = subMode !== "lives" || isValidCombo(lives, guessesPerLife);
 
   return (
     <>
@@ -353,12 +424,6 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
           justify-content: flex-end;
         }
 
-        /* Mobile multiplier preview accordion */
-        .rcs-mobile-mult {
-          display: none;
-        }
-
-        /* ── Mobile overrides ── */
         @media (max-width: 640px) {
           .rcs-root {
             flex-direction: column;
@@ -375,10 +440,6 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
 
           .rcs-sidebar {
             display: none;
-          }
-
-          .rcs-mobile-mult {
-            display: block;
           }
 
           .rcs-option-grid {
@@ -405,7 +466,6 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
       `}</style>
 
       <div className="rcs-root">
-        {/* ── Main config area ── */}
         <div className="rcs-main">
           <div>
             <h1 style={{
@@ -459,7 +519,7 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
                 onClick={() => setDifficulty("easy")}
                 title="Easy"
                 tag="1.00×"
-                description="3–6 letters · Common words · Hints on last 2 guesses"
+                description="3–10 letters · Common words · Boss words every 5th round"
               />
               <OptionCard
                 selected={difficulty === "hard"}
@@ -467,7 +527,7 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
                 onClick={() => setDifficulty("hard")}
                 title="Hard"
                 tag="1.75×"
-                description="5–7 letters · Rare words only · No hints ever"
+                description="5–10 letters · Rare words · No hints · More rounds per length"
               />
             </div>
           </div>
@@ -513,7 +573,7 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
                   <span className="rcs-param-row-label">Lives</span>
                   <div className="rcs-param-btns">
                     {([1, 2, 3] as LivesCount[]).map((l) => (
-                      <ParamButton key={l} active={lives === l} onClick={() => setLives(l)}>
+                      <ParamButton key={l} active={lives === l} onClick={() => handleSetLives(l)}>
                         {l}
                       </ParamButton>
                     ))}
@@ -523,26 +583,31 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
                   <span className="rcs-param-row-label">Guesses / life</span>
                   <div className="rcs-param-btns">
                     {([3, 4, 5] as GuessesPerLife[]).map((g) => {
-                      const key = `${lives}-${g}`;
-                      const valid = key in LIVES_MULTIPLIERS;
-                      return valid ? (
-                        <ParamButton key={g} active={guessesPerLife === g} onClick={() => setGuessesPerLife(g)}>
+                      const valid = isValidCombo(lives, g);
+                      return (
+                        <ParamButton
+                          key={g}
+                          active={guessesPerLife === g}
+                          disabled={!valid}
+                          onClick={() => { if (valid) setGuessesPerLife(g); }}
+                        >
                           {g}
                         </ParamButton>
-                      ) : null;
+                      );
                     })}
                   </div>
                 </div>
-                {!livesConfigValid && (
-                  <p style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-sans)", margin: 0 }}>
-                    Select a valid lives / guesses combination above.
+                {/* Multiplier hint for current combo */}
+                {livesConfigValid && (
+                  <p style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", margin: 0, letterSpacing: "0.04em" }}>
+                    {lives}L · {guessesPerLife}G → {(LIVES_MULTIPLIERS[`${lives}-${guessesPerLife}`] ?? 0).toFixed(2)}× multiplier
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Multiplier preview — always shown on mobile, sidebar on desktop */}
+          {/* Multiplier preview */}
           <div style={{
             background: "var(--bg-2)",
             border: "1px solid var(--border)",
@@ -564,10 +629,23 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
               label={subMode === "timed" ? `Time limit (${timeLimit}s)` : `Lives (${lives}L · ${guessesPerLife}G)`}
               value={`${modeMult.toFixed(2)}×`}
             />
-            <MultRow label="Streak (est. ×5 rounds)" value={`${streakMult.toFixed(2)}×`} />
+            <MultRow
+              label="Streak at round 5"
+              sub="1.12⁵"
+              value={`${streakMult.toFixed(2)}×`}
+            />
             <div style={{ borderTop: "1px solid var(--border)", marginTop: 10, paddingTop: 10 }}>
-              <MultRow label="Combined" value={`${combined.toFixed(2)}×`} highlight />
+              <MultRow label="Combined at round 5" value={`${combined.toFixed(2)}×`} highlight />
             </div>
+            <p style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9,
+              color: "var(--text-muted)",
+              margin: "8px 0 0",
+              letterSpacing: "0.04em",
+            }}>
+              Streak compounds per round won — score grows exponentially the longer you survive.
+            </p>
           </div>
 
           {/* Start CTA */}
@@ -584,16 +662,16 @@ export default function RunConfigScreen({ onStart, isLoading }: Props) {
               fontSize: 14,
               fontWeight: 600,
               padding: 14,
-              cursor: isLoading ? "not-allowed" : "pointer",
+              cursor: isLoading || !livesConfigValid ? "not-allowed" : "pointer",
               transition: "opacity 160ms var(--ease), transform 120ms var(--ease)",
               letterSpacing: "0.01em",
               marginTop: "auto",
-              // Ensure it's always reachable on mobile without getting cut off
               flexShrink: 0,
+              opacity: !livesConfigValid ? 0.5 : 1,
             }}
-            onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.opacity = "0.88"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-            onMouseDown={(e) => { if (!isLoading) e.currentTarget.style.transform = "scale(0.98)"; }}
+            onMouseEnter={(e) => { if (!isLoading && livesConfigValid) e.currentTarget.style.opacity = "0.88"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = !livesConfigValid ? "0.5" : "1"; }}
+            onMouseDown={(e) => { if (!isLoading && livesConfigValid) e.currentTarget.style.transform = "scale(0.98)"; }}
             onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           >
             {isLoading ? "Starting run…" : "Start run →"}

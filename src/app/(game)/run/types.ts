@@ -1,5 +1,4 @@
 // src/app/(game)/run/types.ts
-
 export type Difficulty = "easy" | "hard";
 export type SubMode = "timed" | "lives";
 export type TimeLimit = 30 | 45 | 60;
@@ -46,10 +45,12 @@ export function getSubModeMultiplier(config: RunConfig): number {
   return LIVES_MULTIPLIERS[`${config.lives ?? 1}-${config.guessesPerLife ?? 3}`] ?? 2.5;
 }
 
+// Matches api/run/submit/route.ts: streak = Math.pow(1.12, roundsWon)
+// streakRounds is the preview round number (default 5 → 1.12^5 ≈ 1.76)
 export function getCombinedMultiplier(config: RunConfig, streakRounds = 5): number {
-  const diff = DIFF_MULTIPLIERS[config.difficulty];
-  const mode = getSubModeMultiplier(config);
-  const streak = Math.min(1 + streakRounds * 0.05, 2.0);
+  const diff   = DIFF_MULTIPLIERS[config.difficulty];
+  const mode   = getSubModeMultiplier(config);
+  const streak = Math.pow(1.12, streakRounds);
   return diff * mode * streak;
 }
 
@@ -79,6 +80,10 @@ export interface RunState {
   totalScore: number;
   livesRemaining: number | null;
 
+  // Boss / Chaos round flags (from API token payload)
+  isBoss: boolean;
+  isChaos: boolean;
+
   // End state
   lastWord: string | null;
   finalScore: number;
@@ -105,12 +110,15 @@ export interface StartResponse {
   subModeMultiplier: number;
   difficulty: Difficulty;
   subMode: SubMode;
+  isBoss: boolean;
+  isChaos: boolean;
 }
 
 export interface SubmitResponse {
   feedback: Feedback[];
   won: boolean;
   runOver: boolean;
+
   // On win
   roundScore?: number;
   totalScore?: number;
@@ -118,10 +126,14 @@ export interface SubmitResponse {
   nextToken?: string;
   nextWordLength?: number;
   nextGuessesAllowed?: number;
+  nextIsBoss?: boolean;
+  nextIsChaos?: boolean;
   word?: string;
+
   // On life lost
   lifeLost?: boolean;
   livesRemaining?: number;
+
   // On still guessing
   hint?: { position: number; letter: string } | null;
 }
