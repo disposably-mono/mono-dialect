@@ -587,8 +587,8 @@ export default function RunGameScreen({
                 <div key={ri} style={{
                   display: "flex",
                   justifyContent: "center",
-                  gap: 4,
-                  marginBottom: 4,
+                  gap: 5,
+                  marginBottom: 6,
                 }}>
                   {row.map((key) => {
                     const isWide   = key.length > 1;
@@ -606,9 +606,9 @@ export default function RunGameScreen({
                         }}
                         style={{
                           ...getKeyStyle(feedback),
-                          minWidth: isWide ? 48 : 30,
-                          fontSize: isWide ? 9 : 11,
-                          height: 36,
+                          minWidth: isWide ? 56 : 36,
+                          fontSize: isWide ? 10 : 13,
+                          height: 44,
                         }}
                         onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.95)"; }}
                         onMouseUp={(e)   => { e.currentTarget.style.transform = "scale(1)"; }}

@@ -358,7 +358,15 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
 
       if (!res.ok) {
         dispatch({ type: "SET_SUBMITTING", value: false });
-        showToast("Something went wrong.");
+        const errData = await res.json().catch(() => ({}));
+        if (errData.invalid) {
+          dispatch({ type: "SHAKE_ROW" });
+          wrong();
+          showToast("Not in word list");
+          setTimeout(() => dispatch({ type: "CLEAR_SHAKE" }), 500);
+        } else {
+          showToast("Something went wrong.");
+        }
         return;
       }
 
@@ -379,6 +387,8 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
 
         if (data.runOver) {
           runOver(); // ← descending minor on game over
+          showToast(`The word was: ${data.word}`, 2400);
+
           setTimeout(async () => {
             try {
               const endRes = await fetch("/api/run/end", {
@@ -405,32 +415,45 @@ export function useRunState({ userId, previousHighScore }: UseRunStateOptions) {
                 lastWord: data.word ?? "",
               });
             }
-          }, 600);
+          }, 2600);
           return;
         }
 
         if (data.won) {
-          const msg = ["Brilliant!", "Magnificent!", "Impressive!", "Splendid!", "Great!", "Phew!"][
-            Math.min(guessesTaken - 1, 5)
-          ];
-          showToast(`${msg} +${data.roundScore?.toLocaleString()} pts`);
+          const msg = [
+            "Brilliant!", "Magnificent!", "Impressive!",
+            "Splendid!", "Great!", "Phew!",
+          ][Math.min(guessesTaken - 1, 5)];
+
+          const nextTag = data.nextIsChaos
+            ? " ⚡ CHAOS"
+            : data.nextIsBoss
+            ? " ☠ BOSS"
+            : "";
+
+          showToast(
+            `${msg} +${data.roundScore?.toLocaleString()} pts${nextTag}`,
+            1600
+          );
 
           setTimeout(() => {
             dispatch({ type: "NEXT_ROUND", res: data });
-            // Play boss sting if the next round is a boss/chaos word
             if (data.nextIsBoss || data.nextIsChaos) {
-              bossRound(); // ← tense sawtooth sting
+              bossRound();
             } else {
-              roundWin(); // ← C→E→G arpeggio on normal round win
+              roundWin();
             }
-          }, 1400);
+          }, 1600);
           return;
         }
 
         if (data.lifeLost) {
-          wrong(); // ← extra wrong sound on life lost
-          showToast(`Life lost — ${data.livesRemaining} remaining`);
-          setTimeout(() => dispatch({ type: "LIFE_LOST_NEXT", res: data }), 1400);
+          wrong();
+          showToast(
+            `The word was: ${data.word} — ${data.livesRemaining} life remaining`,
+            2000
+          );
+          setTimeout(() => dispatch({ type: "LIFE_LOST_NEXT", res: data }), 2200);
           return;
         }
 

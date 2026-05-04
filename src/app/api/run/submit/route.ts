@@ -186,7 +186,27 @@ export async function POST(req: NextRequest) {
     // Ensure usedWords always exists (backwards compat with tokens minted before this change)
     const usedWords: string[] = payload.usedWords ?? [];
 
-    const normalized  = guess.toUpperCase();
+    // ── Word bank validation ──────────────────────────────────────────────────────
+    const bank = getWordBank();
+    const allValid = new Set(
+      [
+        ...Object.values(bank.easy).flat(),
+        ...Object.values(bank.hard).flat(),
+      ].map((w) => w.toLowerCase())
+    );
+
+    const normalized = guess.toUpperCase();
+
+    if (
+      !allValid.has(guess.toLowerCase()) &&
+      normalized !== payload.word
+    ) {
+      return NextResponse.json(
+        { error: "Not a valid word", invalid: true },
+        { status: 422 }
+      );
+    }
+
     if (normalized.length !== payload.wordLength) {
       return NextResponse.json({ error: "Wrong word length" }, { status: 400 });
     }
